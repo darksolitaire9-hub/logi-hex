@@ -193,23 +193,18 @@ class SqlAlchemyBalanceQuery(BalanceQueryPort):
         self.session = session
 
     async def get_balances(self) -> List[Balance]:
-        """
-        Compute balances as SUM(OUT) - SUM(IN) per (client_id, container_type_id),
-        and attach container label + latest client name.
-        """
+        # +quantity for OUT, -quantity for IN, 0 otherwise
         out_case = sa.case(
-            (
-                transactions_table.c.direction == "OUT",
-                transactions_table.c.quantity,
-            ),
+            (transactions_table.c.direction == "OUT", transactions_table.c.quantity),
             else_=0,
         )
+
         in_case = sa.case(
             (transactions_table.c.direction == "IN", transactions_table.c.quantity),
             else_=0,
         )
 
-        balance_expr = sa.func.sum(out_case) - sa.func.sum(in_case)
+        balance_expr = sa.func.sum(out_case - in_case)
 
         stmt = (
             sa.select(
