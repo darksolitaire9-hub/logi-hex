@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# SQLite database
+*.db
+
+# Virtual envs
+.venv/
+.env/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.svelte-kit/
+
+# VSCode / IDE
+.vscode/
+.idea/

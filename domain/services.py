@@ -1,11 +1,8 @@
-from typing import Iterable
-
-from .entities import Client, ContainerTransaction, Balance
+from .entities import Balance, Client, ContainerTransaction
 from .ports import (
-    ClientRepositoryPort,
-    ContainerTypeRepositoryPort,
-    TransactionRepositoryPort,
     BalanceQueryPort,
+    ClientRepositoryPort,
+    TransactionRepositoryPort,
 )
 
 
