@@ -71,5 +71,9 @@ class UnitOfWorkPort(ABC):
     async def commit(self) -> None:
         raise NotImplementedError
 
+    @abstractmethod
+    async def rollback(self) -> None:
+        raise NotImplementedError
+
 
 # temp above

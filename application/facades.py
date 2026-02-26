@@ -25,26 +25,34 @@ class LogiFacade:
         self.uow = uow
 
     async def issue(self, name: str, container_type_id: str, quantity: int):
-        tx = await services.issue_containers(
-            name=name,
-            container_type_id=container_type_id,
-            quantity=quantity,
-            client_repo=self.client_repo,
-            tx_repo=self.tx_repo,
-        )
-        await self.uow.commit()
-        return tx
+        try:
+            tx = await services.issue_containers(
+                name=name,
+                container_type_id=container_type_id,
+                quantity=quantity,
+                client_repo=self.client_repo,
+                tx_repo=self.tx_repo,
+            )
+            await self.uow.commit()
+            return tx
+        except Exception:
+            await self.uow.rollback()
+            raise
 
     async def receive(self, name: str, container_type_id: str, quantity: int):
-        tx = await services.return_containers(
-            name=name,
-            container_type_id=container_type_id,
-            quantity=quantity,
-            client_repo=self.client_repo,
-            tx_repo=self.tx_repo,
-        )
-        await self.uow.commit()
-        return tx
+        try:
+            tx = await services.return_containers(
+                name=name,
+                container_type_id=container_type_id,
+                quantity=quantity,
+                client_repo=self.client_repo,
+                tx_repo=self.tx_repo,
+            )
+            await self.uow.commit()
+            return tx
+        except Exception:
+            await self.uow.rollback()
+            raise
 
     async def balances(self) -> list[Balance]:
         return await services.get_current_balances(self.balance_query)
