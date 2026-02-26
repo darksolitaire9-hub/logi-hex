@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
-from .entities import Client, ContainerType, ContainerTransaction, Balance
+
+from .entities import Balance, Client, ContainerTransaction, ContainerType
 
 
 class ClientRepositoryPort(ABC):
@@ -60,3 +61,15 @@ class BalanceQueryPort(ABC):
         Each balance is SUM(OUT) - SUM(IN) per client_id + container_type_id.
         """
         raise NotImplementedError
+
+
+# temp  down
+class UnitOfWorkPort(ABC):
+    """Port for committing/rolling back a group of operations."""
+
+    @abstractmethod
+    async def commit(self) -> None:
+        raise NotImplementedError
+
+
+# temp above

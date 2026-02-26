@@ -9,14 +9,14 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from domain.entities import Client, ContainerType, ContainerTransaction, Balance
+from domain.entities import Balance, Client, ContainerTransaction, ContainerType
 from domain.ports import (
+    BalanceQueryPort,
     ClientRepositoryPort,
     ContainerTypeRepositoryPort,
     TransactionRepositoryPort,
-    BalanceQueryPort,
+    UnitOfWorkPort,
 )
-
 
 # -------------------------------------------------------------------
 # Engine & metadata
@@ -47,7 +47,12 @@ transactions_table = sa.Table(
     sa.Column("timestamp", sa.DateTime, nullable=False),
     sa.Column("client_id", sa.String, sa.ForeignKey("clients.id"), nullable=False),
     sa.Column("client_name", sa.String, nullable=False),
-    sa.Column("container_type_id", sa.String, sa.ForeignKey("container_types.id"), nullable=False),
+    sa.Column(
+        "container_type_id",
+        sa.String,
+        sa.ForeignKey("container_types.id"),
+        nullable=False,
+    ),
     sa.Column("direction", sa.String, nullable=False),  # "OUT" or "IN"
     sa.Column("quantity", sa.Integer, nullable=False),
 )
@@ -82,21 +87,20 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 # Repositories implementing ports
 # -------------------------------------------------------------------
 
+
 class SqlAlchemyClientRepository(ClientRepositoryPort):
     def __init__(self, session: AsyncSession):
         self.session = session
 
     async def get_or_create_by_name(self, name: str) -> Client:
         normalized = name.lower().strip()
-        # Try existing
         result = await self.session.execute(
             sa.select(clients_table).where(clients_table.c.name == normalized)
         )
-        row = result.scalar_one_or_none()
-        if row:
+        row = result.first()  # Row | None
+        if row is not None:
             return Client(id=row.id, name=row.name)
 
-        # Create new via domain logic
         client = Client.from_name(name)
         await self.session.execute(
             clients_table.insert().values(id=client.id, name=client.name)
@@ -120,26 +124,33 @@ class SqlAlchemyContainerTypeRepository(ContainerTypeRepositoryPort):
 
     async def get_by_id(self, type_id: str) -> Optional[ContainerType]:
         result = await self.session.execute(
-            sa.select(container_types_table).where(container_types_table.c.id == type_id)
+            sa.select(container_types_table).where(
+                container_types_table.c.id == type_id
+            )
         )
-        row = result.scalar_one_or_none()
+        row = result.first()
         if row is None:
             return None
+        # row is a Row, its columns are accessible as attributes
         return ContainerType(id=row.id, label=row.label)
 
     async def save(self, container_type: ContainerType) -> None:
-        # Upsert-ish: try update, if 0 rows then insert
-        result = await self.session.execute(
-            sa.update(container_types_table)
-            .where(container_types_table.c.id == container_type.id)
-            .values(label=container_type.label)
-        )
-        if result.rowcount == 0:
+        # First check if it exists
+        existing = await self.get_by_id(container_type.id)
+        if existing is None:
+            # Insert
             await self.session.execute(
                 container_types_table.insert().values(
                     id=container_type.id,
                     label=container_type.label,
                 )
+            )
+        else:
+            # Update
+            await self.session.execute(
+                sa.update(container_types_table)
+                .where(container_types_table.c.id == container_type.id)
+                .values(label=container_type.label)
             )
 
 
@@ -184,14 +195,15 @@ class SqlAlchemyBalanceQuery(BalanceQueryPort):
     async def get_balances(self) -> List[Balance]:
         """
         Compute balances as SUM(OUT) - SUM(IN) per (client_id, container_type_id),
-        filter out zeros, and attach container label + latest client name.
+        and attach container label + latest client name.
         """
-        # OUT sum
         out_case = sa.case(
-            (transactions_table.c.direction == "OUT", transactions_table.c.quantity),
+            (
+                transactions_table.c.direction == "OUT",
+                transactions_table.c.quantity,
+            ),
             else_=0,
         )
-        # IN sum
         in_case = sa.case(
             (transactions_table.c.direction == "IN", transactions_table.c.quantity),
             else_=0,
@@ -201,9 +213,9 @@ class SqlAlchemyBalanceQuery(BalanceQueryPort):
 
         stmt = (
             sa.select(
-                transactions_table.c.client_id,
+                transactions_table.c.client_id.label("client_id"),
                 sa.func.max(transactions_table.c.client_name).label("client_name"),
-                transactions_table.c.container_type_id,
+                transactions_table.c.container_type_id.label("container_type_id"),
                 sa.func.max(container_types_table.c.label).label("container_label"),
                 balance_expr.label("balance"),
             )
@@ -215,19 +227,30 @@ class SqlAlchemyBalanceQuery(BalanceQueryPort):
                 transactions_table.c.client_id,
                 transactions_table.c.container_type_id,
             )
-            .having(balance_expr != 0)
         )
 
         result = await self.session.execute(stmt)
         rows = result.fetchall()
 
-        return [
-            Balance(
-                client_id=row.client_id,
-                client_name=row.client_name,
-                container_type_id=row.container_type_id,
-                container_label=row.container_label,
-                balance=row.balance,
+        balances: List[Balance] = []
+        for row in rows:
+            if row.balance == 0:
+                continue
+            balances.append(
+                Balance(
+                    client_id=row.client_id,
+                    client_name=row.client_name,
+                    container_type_id=row.container_type_id,
+                    container_label=row.container_label,
+                    balance=row.balance,
+                )
             )
-            for row in rows
-        ]
+        return balances
+
+
+class SqlAlchemyUnitOfWork(UnitOfWorkPort):
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def commit(self) -> None:
+        await self.session.commit()

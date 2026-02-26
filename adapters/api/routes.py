@@ -1,10 +1,19 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
+# seeding below
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from application.facades import LogiFacade
 from composition.container import get_facade
-from domain.entities import Balance
+from domain.entities import Balance, ContainerType
+from infrastructure.sqlite_repo import (
+    SqlAlchemyContainerTypeRepository,
+    SqlAlchemyTransactionRepository,
+    get_session,
+)
 
+# seeding above
 
 router = APIRouter(prefix="/api", tags=["containers"])
 
@@ -77,3 +86,51 @@ async def get_balances(
     """
     balances = await facade.balances()
     return balances
+
+
+# temp helper below
+
+
+@router.post("/seed-container-types")
+async def seed_container_types(
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Temporary helper: seed some default container types.
+    Call once after deploy, or whenever you reset the DB.
+    """
+    repo = SqlAlchemyContainerTypeRepository(session)
+
+    defaults = [
+        ContainerType(id="white", label="White Box"),
+        ContainerType(id="round", label="Round Box"),
+        ContainerType(id="glass", label="Big Glass"),
+    ]
+
+    for ct in defaults:
+        await repo.save(ct)
+
+    await session.commit()
+    return {"seeded": [ct.id for ct in defaults]}
+
+
+@router.get("/debug/transactions")
+async def debug_transactions(
+    session: AsyncSession = Depends(get_session),
+):
+    repo = SqlAlchemyTransactionRepository(session)
+    txs = await repo.list_all()
+    return [
+        {
+            "id": tx.id,
+            "client_id": tx.client_id,
+            "client_name": tx.client_name,
+            "container_type_id": tx.container_type_id,
+            "direction": tx.direction,
+            "quantity": tx.quantity,
+        }
+        for tx in txs
+    ]
+
+
+# temp above
