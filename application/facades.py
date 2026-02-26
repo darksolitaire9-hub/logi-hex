@@ -31,6 +31,7 @@ class LogiFacade:
                 container_type_id=container_type_id,
                 quantity=quantity,
                 client_repo=self.client_repo,
+                container_type_repo=self.container_type_repo,
                 tx_repo=self.tx_repo,
             )
             await self.uow.commit()
@@ -46,7 +47,9 @@ class LogiFacade:
                 container_type_id=container_type_id,
                 quantity=quantity,
                 client_repo=self.client_repo,
+                container_type_repo=self.container_type_repo,
                 tx_repo=self.tx_repo,
+                balance_query=self.balance_query,
             )
             await self.uow.commit()
             return tx

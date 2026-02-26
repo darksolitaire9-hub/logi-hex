@@ -193,7 +193,7 @@ class SqlAlchemyBalanceQuery(BalanceQueryPort):
         self.session = session
 
     async def get_balances(self) -> List[Balance]:
-        # +quantity for OUT, -quantity for IN, 0 otherwise
+        # OUT adds to balance (client owes more), IN subtracts (they return)
         out_case = sa.case(
             (transactions_table.c.direction == "OUT", transactions_table.c.quantity),
             else_=0,
@@ -204,6 +204,7 @@ class SqlAlchemyBalanceQuery(BalanceQueryPort):
             else_=0,
         )
 
+        # balance = SUM(OUT - IN)
         balance_expr = sa.func.sum(out_case - in_case)
 
         stmt = (
@@ -217,6 +218,7 @@ class SqlAlchemyBalanceQuery(BalanceQueryPort):
             .join(
                 container_types_table,
                 container_types_table.c.id == transactions_table.c.container_type_id,
+                isouter=True,  # LEFT OUTER JOIN for robustness
             )
             .group_by(
                 transactions_table.c.client_id,
@@ -236,11 +238,33 @@ class SqlAlchemyBalanceQuery(BalanceQueryPort):
                     client_id=row.client_id,
                     client_name=row.client_name,
                     container_type_id=row.container_type_id,
-                    container_label=row.container_label,
+                    container_label=row.container_label or row.container_type_id,
                     balance=row.balance,
                 )
             )
         return balances
+
+    async def get_balance_for(self, client_id: str, container_type_id: str) -> int:
+        # used by domain service to validate `/receive`
+        out_case = sa.case(
+            (transactions_table.c.direction == "OUT", transactions_table.c.quantity),
+            else_=0,
+        )
+        in_case = sa.case(
+            (transactions_table.c.direction == "IN", transactions_table.c.quantity),
+            else_=0,
+        )
+
+        balance_expr = sa.func.sum(out_case - in_case)  # OUT - IN
+
+        stmt = sa.select(balance_expr).where(
+            transactions_table.c.client_id == client_id,
+            transactions_table.c.container_type_id == container_type_id,
+        )
+
+        result = await self.session.execute(stmt)
+        value = result.scalar()
+        return value or 0  # treat no rows as 0
 
 
 class SqlAlchemyUnitOfWork(UnitOfWorkPort):

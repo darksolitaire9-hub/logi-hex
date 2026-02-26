@@ -1,10 +1,16 @@
 from contextlib import asynccontextmanager
+import logging
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 from adapters.api.routes import router as api_router
+from domain.exceptions import InsufficientBalanceError, UnknownContainerTypeError
 from infrastructure.sqlite_repo import init_db
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 @asynccontextmanager
@@ -21,6 +27,41 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# --- Domain-level error handlers -> 422 -------------------------------
+
+@app.exception_handler(UnknownContainerTypeError)
+async def unknown_container_type_handler(
+    request: Request, exc: UnknownContainerTypeError
+):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(InsufficientBalanceError)
+async def insufficient_balance_handler(
+    request: Request, exc: InsufficientBalanceError
+):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": str(exc)},
+    )
+
+
+# --- Global fallback -> 500 ------------------------------------------
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error on %s %s", request.method, request.url)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error."},
+    )
+
+
+# --- Routers ---------------------------------------------------------
 
 app.include_router(api_router)
 
