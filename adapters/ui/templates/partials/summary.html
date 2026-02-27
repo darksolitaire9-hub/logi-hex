@@ -1,0 +1,26 @@
+{% if summary.clients %}
+  {% for client in summary.clients %}
+    <div class="summary-client">
+      <div class="summary-client-header">
+        <span>{{ client.client_name | title }}</span>
+        <span class="total-badge">{{ client.total_outstanding }} 📦</span>
+      </div>
+      <div class="summary-rows">
+        {% for b in client.balances %}
+          <div class="summary-row">
+            <span>{{ b.container_label }}</span>
+            <span>{{ b.balance }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+
+  <div class="grand-total">
+    <span>Grand total</span>
+    <span>{{ summary.grand_total }} 📦</span>
+  </div>
+
+{% else %}
+  <p class="empty-state">No outstanding balances. All settled ✓</p>
+{% endif %}

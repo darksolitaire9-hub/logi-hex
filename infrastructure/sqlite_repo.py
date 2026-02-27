@@ -161,6 +161,13 @@ class SqlAlchemyContainerTypeRepository(ContainerTypeRepositoryPort):
                 .values(label=container_type.label)
             )
 
+    async def delete(self, type_id: str) -> None:
+        await self.session.execute(
+            sa.delete(container_types_table).where(
+                container_types_table.c.id == type_id
+            )
+        )
+
 
 class SqlAlchemyTransactionRepository(TransactionRepositoryPort):
     def __init__(self, session: AsyncSession):

@@ -1,0 +1,68 @@
+
+{% extends "layout.html" %}
+
+{% block content %}
+
+<!-- Manage Box Types -->
+<section>
+  <h2>Box Types</h2>
+  <form
+    hx-post="/ui/container-types"
+    hx-target="#container-types-table"
+    hx-swap="outerHTML"
+    style="margin-bottom: 1rem"
+  >
+    <input type="text" name="type_id" placeholder="ID e.g. white" required />
+    <input type="text" name="label" placeholder="Label e.g. White Box" required />
+    <button type="submit">Add Box Type</button>
+  </form>
+  {% include "partials/container_types.html" %}
+</section>
+
+<!-- Issue Containers -->
+<section>
+  <h2>Issue Boxes (OUT)</h2>
+  <form
+    hx-post="/ui/issue"
+    hx-target="#summary-table"
+    hx-swap="outerHTML"
+  >
+    <input type="text" name="name" placeholder="Client name" required />
+    <select name="container_type_id" required>
+      <option value="" disabled selected>Select box type</option>
+      {% for ct in container_types %}
+        <option value="{{ ct.id }}">{{ ct.label }}</option>
+      {% endfor %}
+    </select>
+    <input type="number" name="quantity" placeholder="Qty" min="1" required style="width:80px" />
+    <button type="submit">Issue</button>
+  </form>
+</section>
+
+<!-- Receive Containers -->
+<section>
+  <h2>Receive Boxes (IN)</h2>
+  <form
+    hx-post="/ui/receive"
+    hx-target="#summary-table"
+    hx-swap="outerHTML"
+  >
+    <input type="text" name="name" placeholder="Client name" required />
+    <select name="container_type_id" required>
+      <option value="" disabled selected>Select box type</option>
+      {% for ct in container_types %}
+        <option value="{{ ct.id }}">{{ ct.label }}</option>
+      {% endfor %}
+    </select>
+    <input type="number" name="quantity" placeholder="Qty" min="1" required style="width:80px" />
+    <button type="submit">Receive</button>
+  </form>
+</section>
+
+<!-- Summary -->
+<section>
+  <h2>Outstanding Balances</h2>
+  {% include "partials/summary.html" %}
+</section>
+
+{% endblock %}

@@ -1,3 +1,5 @@
+# main.py
+
 from contextlib import asynccontextmanager
 import logging
 
@@ -6,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from adapters.api.routes import router as api_router
+from adapters.ui.routes import router as ui_router          # new
 from domain.exceptions import InsufficientBalanceError, UnknownContainerTypeError
 from infrastructure.sqlite_repo import init_db
 
@@ -15,10 +18,8 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     await init_db()
     yield
-    # Shutdown (nothing to clean up yet)
 
 
 app = FastAPI(
@@ -28,42 +29,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# --- Domain-level error handlers -> 422 -------------------------------
 
 @app.exception_handler(UnknownContainerTypeError)
-async def unknown_container_type_handler(
-    request: Request, exc: UnknownContainerTypeError
-):
-    return JSONResponse(
-        status_code=422,
-        content={"detail": str(exc)},
-    )
+async def unknown_container_type_handler(request: Request, exc: UnknownContainerTypeError):
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
 @app.exception_handler(InsufficientBalanceError)
-async def insufficient_balance_handler(
-    request: Request, exc: InsufficientBalanceError
-):
-    return JSONResponse(
-        status_code=422,
-        content={"detail": str(exc)},
-    )
+async def insufficient_balance_handler(request: Request, exc: InsufficientBalanceError):
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
 
-
-# --- Global fallback -> 500 ------------------------------------------
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled error on %s %s", request.method, request.url)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error."},
-    )
+    return JSONResponse(status_code=500, content={"detail": "Internal server error."})
 
-
-# --- Routers ---------------------------------------------------------
 
 app.include_router(api_router)
+app.include_router(ui_router)                               # new
 
 
 if __name__ == "__main__":

@@ -1,0 +1,21 @@
+{% if container_types %}
+  {% for ct in container_types %}
+    <div class="type-row">
+      <span>{{ ct.label }}</span>
+      <form
+        hx-post="/ui/box-types/delete"
+        hx-target="#box-types-list"
+        hx-swap="innerHTML"
+        hx-confirm="Delete '{{ ct.label }}'?"
+        style="display:inline"
+      >
+        <input type="hidden" name="type_id" value="{{ ct.id }}" />
+        <button type="submit" class="btn btn-danger" style="padding:0.25rem 0.6rem; font-size:0.8rem">
+          Delete
+        </button>
+      </form>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="empty-state">No box types defined yet.</p>
+{% endif %}

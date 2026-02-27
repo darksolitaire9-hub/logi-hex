@@ -1,0 +1,75 @@
+<div class="modal-backdrop" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <h2 class="{{ direction | lower }}">
+      {% if direction == "OUT" %}
+        📤 Log box status – OUT
+      {% else %}
+        📥 Log box status – IN
+      {% endif %}
+    </h2>
+
+    {% if error %}
+      <div class="error-msg">⚠ {{ error }}</div>
+    {% endif %}
+
+    <form
+      hx-post="/ui/log"
+      hx-target="#modal-container"
+      hx-swap="innerHTML"
+    >
+      <input type="hidden" name="direction" value="{{ direction }}" />
+
+      <div class="field">
+        <label>Client</label>
+        <input
+          type="text"
+          name="name"
+          placeholder="Client name"
+          required
+          autofocus
+          list="clients-list"
+        />
+        <datalist id="clients-list">
+          {% for c in clients %}
+            <option value="{{ c.name | title }}">
+          {% endfor %}
+        </datalist>
+      </div>
+
+      <div class="field">
+        <label>Box Type</label>
+        <select name="container_type_id" required>
+          <option value="" disabled selected>Select box type</option>
+          {% for ct in container_types %}
+            <option value="{{ ct.id }}">{{ ct.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Quantity</label>
+        <input
+          type="number"
+          name="quantity"
+          min="1"
+          placeholder="e.g. 3"
+          required
+          style="max-width: 120px"
+        />
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:1rem;">
+        <button
+          type="submit"
+          class="btn {% if direction == 'OUT' %}btn-out{% else %}btn-in{% endif %}"
+        >
+          {% if direction == "OUT" %}Log OUT{% else %}Log IN{% endif %}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if not has_types %}
+  <!-- First-time onboarding -->
+  <div class="card">
+    <div class="onboarding">
+      <p>Welcome to logi-hex.<br/>You need to define your first box type before logging.</p>
+      <a href="/ui/box-types" class="btn btn-primary">+ Add first box type</a>
+    </div>
+  </div>
+
+{% else %}
+  <!-- Action buttons -->
+  <div class="card">
+    <div class="action-row">
+      <button class="btn btn-out" onclick="openModal('OUT')">
+        📤 Give Boxes (OUT)
+      </button>
+      <button class="btn btn-in" onclick="openModal('IN')">
+        📥 Receive Boxes (IN)
+      </button>
+      <a href="/ui/box-types" class="btn btn-ghost" style="margin-left:auto">
+        ⚙ Manage box types
+      </a>
+    </div>
+  </div>
+
+  <!-- Outstanding balances -->
+  <div class="card">
+    <h2>Outstanding</h2>
+    <div
+      id="summary-section"
+      hx-get="/ui/partial/summary"
+      hx-trigger="load"
+    >
+      {% include "partials/summary.html" %}
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

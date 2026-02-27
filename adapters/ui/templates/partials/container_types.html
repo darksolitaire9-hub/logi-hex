@@ -1,0 +1,22 @@
+<div id="container-types-table">
+  {% if container_types %}
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Label</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ct in container_types %}
+          <tr>
+            <td>{{ ct.id }}</td>
+            <td>{{ ct.label }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p style="color:#888">No box types defined yet.</p>
+  {% endif %}
+</div>

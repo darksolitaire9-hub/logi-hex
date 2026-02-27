@@ -1,7 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from .entities import Balance, Client, ContainerTransaction, ContainerType, SummaryResult
+from .entities import (
+    Balance,
+    Client,
+    ContainerTransaction,
+    ContainerType,
+    SummaryResult,
+)
 
 
 class ClientRepositoryPort(ABC):
@@ -34,6 +40,11 @@ class ContainerTypeRepositoryPort(ABC):
     @abstractmethod
     async def save(self, container_type: ContainerType) -> None:
         """Create or update a container type."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def delete(self, type_id: str) -> None:
+        """Delete a container type by id."""
         raise NotImplementedError
 
 
