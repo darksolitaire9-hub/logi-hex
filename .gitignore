@@ -19,3 +19,7 @@ frontend/.svelte-kit/
 .vscode/
 .idea/
 
+
+# debug files 
+*.txt
+*.nu
