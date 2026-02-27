@@ -1,9 +1,10 @@
 from domain import services
-from domain.entities import Balance
+from domain.entities import Balance, SummaryResult
 from domain.ports import (
     BalanceQueryPort,
     ClientRepositoryPort,
     ContainerTypeRepositoryPort,
+    SummaryQueryPort,
     TransactionRepositoryPort,
     UnitOfWorkPort,
 )
@@ -16,12 +17,14 @@ class LogiFacade:
         container_type_repo: ContainerTypeRepositoryPort,
         tx_repo: TransactionRepositoryPort,
         balance_query: BalanceQueryPort,
+        summary_query: SummaryQueryPort,
         uow: UnitOfWorkPort,
     ) -> None:
         self.client_repo = client_repo
         self.container_type_repo = container_type_repo
         self.tx_repo = tx_repo
         self.balance_query = balance_query
+        self.summary_query = summary_query
         self.uow = uow
 
     async def issue(self, name: str, container_type_id: str, quantity: int):
@@ -59,3 +62,6 @@ class LogiFacade:
 
     async def balances(self) -> list[Balance]:
         return await services.get_current_balances(self.balance_query)
+
+    async def summary(self) -> SummaryResult:
+        return await self.summary_query.get_summary()

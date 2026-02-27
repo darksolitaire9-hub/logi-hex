@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 from uuid import uuid4
@@ -68,3 +68,21 @@ class Balance:
     container_type_id: str
     container_label: str
     balance: int  # SUM(OUT) - SUM(IN) — positive means client owes you
+
+
+@dataclass
+class ClientBalanceSummary:
+    """Per-client summary: all non-zero box balances and their total."""
+
+    client_id: str
+    client_name: str
+    total_outstanding: int
+    balances: list[Balance] = field(default_factory=list)
+
+
+@dataclass
+class SummaryResult:
+    """Top-level summary: all clients with outstanding boxes + grand total."""
+
+    clients: list[ClientBalanceSummary] = field(default_factory=list)
+    grand_total: int = 0

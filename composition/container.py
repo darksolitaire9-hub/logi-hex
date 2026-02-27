@@ -6,6 +6,7 @@ from infrastructure.sqlite_repo import (
     SqlAlchemyBalanceQuery,
     SqlAlchemyClientRepository,
     SqlAlchemyContainerTypeRepository,
+    SqlAlchemySummaryQuery,
     SqlAlchemyTransactionRepository,
     SqlAlchemyUnitOfWork,
     get_session,
@@ -26,5 +27,6 @@ async def get_facade(
         container_type_repo=container_type_repo,
         tx_repo=tx_repo,
         balance_query=balance_query,
+        summary_query=SqlAlchemySummaryQuery(session),
         uow=uow,
     )

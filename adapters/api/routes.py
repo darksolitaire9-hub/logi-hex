@@ -88,6 +88,35 @@ async def get_balances(
     return balances
 
 
+@router.get("/summary")
+async def get_summary(
+    facade: LogiFacade = Depends(get_facade),
+):
+    """
+    Returns a client-centric summary of all outstanding container balances.
+    Each client shows per-type balances and a total outstanding count.
+    """
+    result = await facade.summary()
+    return {
+        "clients": [
+            {
+                "client_name": c.client_name,
+                "total_outstanding": c.total_outstanding,
+                "balances": [
+                    {
+                        "container_label": b.container_label,
+                        "container_type_id": b.container_type_id,
+                        "balance": b.balance,
+                    }
+                    for b in c.balances
+                ],
+            }
+            for c in result.clients
+        ],
+        "grand_total": result.grand_total,
+    }
+
+
 # temp helper below
 
 

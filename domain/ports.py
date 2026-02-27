@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from .entities import Balance, Client, ContainerTransaction, ContainerType
+from .entities import Balance, Client, ContainerTransaction, ContainerType, SummaryResult
 
 
 class ClientRepositoryPort(ABC):
@@ -67,6 +67,18 @@ class BalanceQueryPort(ABC):
         """
         Return SUM(OUT) - SUM(IN) for a single (client_id, container_type_id).
         If there are no transactions, return 0.
+        """
+        raise NotImplementedError
+
+
+class SummaryQueryPort(ABC):
+    """Port for retrieving the client-centric summary of outstanding balances."""
+
+    @abstractmethod
+    async def get_summary(self) -> SummaryResult:
+        """
+        Returns all clients with non-zero balances, their per-type breakdown,
+        and a grand total of all outstanding containers.
         """
         raise NotImplementedError
 
