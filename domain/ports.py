@@ -7,6 +7,9 @@ from .entities import (
     ContainerTransaction,
     ContainerType,
     SummaryResult,
+    TrackingCategory,
+    TrackingItem,
+    Transaction,
 )
 
 
@@ -48,6 +51,54 @@ class ContainerTypeRepositoryPort(ABC):
         raise NotImplementedError
 
 
+class TrackingCategoryRepositoryPort(ABC):
+    """Port for managing tracking categories."""
+
+    @abstractmethod
+    async def list_all(self) -> List[TrackingCategory]:
+        """Return all tracking categories."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_by_id(self, category_id: str) -> TrackingCategory | None:
+        """Return a category by its id, or None if missing."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def save(self, category: TrackingCategory) -> None:
+        """Create or update a tracking category."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def delete(self, category_id: str) -> None:
+        """Delete a tracking category by id."""
+        raise NotImplementedError
+
+
+class TrackingItemRepositoryPort(ABC):
+    """Port for managing tracking items within a category."""
+
+    @abstractmethod
+    async def list_all_by_category(self, category_id: str) -> List[TrackingItem]:
+        """Return all items for a given category."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_by_id(self, item_id: str) -> TrackingItem | None:
+        """Return a tracking item by its id, or None if missing."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def save(self, item: TrackingItem) -> None:
+        """Create or update a tracking item."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def delete(self, item_id: str) -> None:
+        """Delete a tracking item by id."""
+        raise NotImplementedError
+
+
 class TransactionRepositoryPort(ABC):
     """Port for appending and listing container transactions."""
 
@@ -59,6 +110,20 @@ class TransactionRepositoryPort(ABC):
     @abstractmethod
     async def list_all(self) -> List[ContainerTransaction]:
         """Return all transactions (for debugging or exports)."""
+        raise NotImplementedError
+
+
+class GenericTransactionRepositoryPort(ABC):
+    """Port for appending and listing generic multi-item transactions."""
+
+    @abstractmethod
+    async def save(self, tx: Transaction) -> None:
+        """Append a new generic transaction to the ledger."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def list_all(self) -> List[Transaction]:
+        """Return all generic transactions."""
         raise NotImplementedError
 
 

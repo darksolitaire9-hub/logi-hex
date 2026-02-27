@@ -22,6 +22,51 @@ class Client:
         return cls(id=client_id, name=name.lower().strip())
 
 
+
+
+@dataclass
+class TrackingCategory:
+    """
+    User-defined category of things to track.
+
+    Examples:
+    - id="boxes", name="Boxes", is_balanced=True
+    - id="food", name="Food", is_balanced=False (informational only)
+    """
+
+    id: str
+    name: str
+    is_balanced: bool
+
+
+@dataclass
+class TrackingItem:
+    """
+    Item within a tracking category.
+
+    Examples:
+    - id="red-box", category_id="boxes", label="Red Box"
+    - id="salad", category_id="food", label="Salad"
+    """
+
+    id: str
+    category_id: str
+    label: str
+
+
+@dataclass(frozen=True)
+class TransactionLineItem:
+    """
+    One primary tracked item within a transaction, with quantity.
+
+    This is where balances are enforced for balanced categories.
+    """
+
+    tracking_item_id: str
+    label: str
+    quantity: int
+
+
 @dataclass(frozen=True)
 class ContainerTransaction:
     id: str
@@ -58,6 +103,48 @@ class ContainerTransaction:
             container_type_id=container_type_id,
             direction="IN",
             quantity=quantity,
+        )
+
+
+
+@dataclass(frozen=True)
+class Transaction:
+    """
+    Generic transaction that can contain multiple primary line items
+    and optional secondary (informational) items.
+
+    Direction semantics remain:
+    - OUT = issued / going out
+    - IN  = returned / coming in
+    """
+
+    id: str
+    timestamp: datetime
+    client_id: str
+    client_name: str
+    direction: Literal["OUT", "IN"]
+    line_items: list[TransactionLineItem]
+    secondary_items: list[str]  # tracking_item_ids of secondary category
+    notes: str | None = None
+
+    @classmethod
+    def create(
+        cls,
+        client: "Client",
+        direction: Literal["OUT", "IN"],
+        line_items: list[TransactionLineItem],
+        secondary_items: list[str] | None = None,
+        notes: str | None = None,
+    ) -> "Transaction":
+        return cls(
+            id=uuid4().hex,
+            timestamp=datetime.now(),
+            client_id=client.id,
+            client_name=client.name,
+            direction=direction,
+            line_items=line_items,
+            secondary_items=secondary_items or [],
+            notes=notes,
         )
 
 

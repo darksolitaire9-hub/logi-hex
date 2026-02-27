@@ -1,10 +1,13 @@
 from domain import services
-from domain.entities import Balance, SummaryResult
+from domain.entities import Balance, SummaryResult, Transaction
 from domain.ports import (
     BalanceQueryPort,
     ClientRepositoryPort,
     ContainerTypeRepositoryPort,
+    GenericTransactionRepositoryPort,
     SummaryQueryPort,
+    TrackingCategoryRepositoryPort,
+    TrackingItemRepositoryPort,
     TransactionRepositoryPort,
     UnitOfWorkPort,
 )
@@ -19,6 +22,9 @@ class LogiFacade:
         balance_query: BalanceQueryPort,
         summary_query: SummaryQueryPort,
         uow: UnitOfWorkPort,
+        tracking_category_repo: TrackingCategoryRepositoryPort,
+        tracking_item_repo: TrackingItemRepositoryPort,
+        generic_tx_repo: GenericTransactionRepositoryPort,
     ) -> None:
         self.client_repo = client_repo
         self.container_type_repo = container_type_repo
@@ -26,16 +32,57 @@ class LogiFacade:
         self.balance_query = balance_query
         self.summary_query = summary_query
         self.uow = uow
+        self.tracking_category_repo = tracking_category_repo
+        self.tracking_item_repo = tracking_item_repo
+        self.generic_tx_repo = generic_tx_repo
 
-    async def issue(self, name: str, container_type_id: str, quantity: int):
+    async def issue_items(
+        self,
+        name: str,
+        primary_item_quantities: dict[str, int],
+        secondary_item_ids: list[str],
+        notes: str | None,
+        primary_category_id: str,
+    ) -> Transaction:
         try:
-            tx = await services.issue_containers(
+            tx = await services.issue_items(
                 name=name,
-                container_type_id=container_type_id,
-                quantity=quantity,
+                primary_item_quantities=primary_item_quantities,
+                secondary_item_ids=secondary_item_ids,
+                notes=notes,
                 client_repo=self.client_repo,
-                container_type_repo=self.container_type_repo,
-                tx_repo=self.tx_repo,
+                tracking_item_repo=self.tracking_item_repo,
+                tracking_category_repo=self.tracking_category_repo,
+                tx_repo=self.generic_tx_repo,
+                balance_query=self.balance_query,
+                primary_category_id=primary_category_id,
+            )
+            await self.uow.commit()
+            return tx
+        except Exception:
+            await self.uow.rollback()
+            raise
+
+    async def return_items(
+        self,
+        name: str,
+        primary_item_quantities: dict[str, int],
+        secondary_item_ids: list[str],
+        notes: str | None,
+        primary_category_id: str,
+    ) -> Transaction:
+        try:
+            tx = await services.return_items(
+                name=name,
+                primary_item_quantities=primary_item_quantities,
+                secondary_item_ids=secondary_item_ids,
+                notes=notes,
+                client_repo=self.client_repo,
+                tracking_item_repo=self.tracking_item_repo,
+                tracking_category_repo=self.tracking_category_repo,
+                tx_repo=self.generic_tx_repo,
+                balance_query=self.balance_query,
+                primary_category_id=primary_category_id,
             )
             await self.uow.commit()
             return tx
