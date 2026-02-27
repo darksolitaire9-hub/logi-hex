@@ -15,13 +15,20 @@ from domain.entities import (
     ClientBalanceSummary,
     ContainerTransaction,
     ContainerType,
+    TrackingCategory,
+    TrackingItem,
+    Transaction,
+    TransactionLineItem,
 )
 from domain.ports import (
     BalanceQueryPort,
     ClientRepositoryPort,
     ContainerTypeRepositoryPort,
+    GenericTransactionRepositoryPort,
     SummaryQueryPort,
     SummaryResult,
+    TrackingCategoryRepositoryPort,
+    TrackingItemRepositoryPort,
     TransactionRepositoryPort,
     UnitOfWorkPort,
 )
@@ -63,6 +70,59 @@ transactions_table = sa.Table(
     ),
     sa.Column("direction", sa.String, nullable=False),  # "OUT" or "IN"
     sa.Column("quantity", sa.Integer, nullable=False),
+)
+
+
+tracking_categories_table = sa.Table(
+    "tracking_categories",
+    metadata,
+    sa.Column("id", sa.String, primary_key=True),
+    sa.Column("name", sa.String, nullable=False),
+    sa.Column("is_balanced", sa.Boolean, nullable=False, default=True),
+)
+
+tracking_items_table = sa.Table(
+    "tracking_items",
+    metadata,
+    sa.Column("id", sa.String, primary_key=True),
+    sa.Column(
+        "category_id",
+        sa.String,
+        sa.ForeignKey("tracking_categories.id"),
+        nullable=False,
+    ),
+    sa.Column("label", sa.String, nullable=False),
+)
+
+transaction_line_items_table = sa.Table(
+    "transaction_line_items",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True, autoincrement=True),
+    sa.Column(
+        "transaction_id", sa.String, sa.ForeignKey("transactions.id"), nullable=False
+    ),
+    sa.Column(
+        "tracking_item_id",
+        sa.String,
+        sa.ForeignKey("tracking_items.id"),
+        nullable=False,
+    ),
+    sa.Column("label", sa.String, nullable=False),
+    sa.Column("quantity", sa.Integer, nullable=False),
+)
+
+transaction_secondary_items_table = sa.Table(
+    "transaction_secondary_items",
+    metadata,
+    sa.Column(
+        "transaction_id", sa.String, sa.ForeignKey("transactions.id"), primary_key=True
+    ),
+    sa.Column(
+        "tracking_item_id",
+        sa.String,
+        sa.ForeignKey("tracking_items.id"),
+        primary_key=True,
+    ),
 )
 
 
@@ -169,6 +229,124 @@ class SqlAlchemyContainerTypeRepository(ContainerTypeRepositoryPort):
         )
 
 
+class SqlAlchemyTrackingCategoryRepository(TrackingCategoryRepositoryPort):
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def list_all(self) -> List[TrackingCategory]:
+        result = await self.session.execute(sa.select(tracking_categories_table))
+        rows = result.fetchall()
+        return [
+            TrackingCategory(
+                id=row.id,
+                name=row.name,
+                is_balanced=row.is_balanced,
+            )
+            for row in rows
+        ]
+
+    async def get_by_id(self, category_id: str) -> Optional[TrackingCategory]:
+        result = await self.session.execute(
+            sa.select(tracking_categories_table).where(
+                tracking_categories_table.c.id == category_id
+            )
+        )
+        row = result.first()
+        if row is None:
+            return None
+        return TrackingCategory(
+            id=row.id,
+            name=row.name,
+            is_balanced=row.is_balanced,
+        )
+
+    async def save(self, category: TrackingCategory) -> None:
+        existing = await self.get_by_id(category.id)
+        if existing is None:
+            await self.session.execute(
+                tracking_categories_table.insert().values(
+                    id=category.id,
+                    name=category.name,
+                    is_balanced=category.is_balanced,
+                )
+            )
+        else:
+            await self.session.execute(
+                sa.update(tracking_categories_table)
+                .where(tracking_categories_table.c.id == category.id)
+                .values(
+                    name=category.name,
+                    is_balanced=category.is_balanced,
+                )
+            )
+
+    async def delete(self, category_id: str) -> None:
+        await self.session.execute(
+            sa.delete(tracking_categories_table).where(
+                tracking_categories_table.c.id == category_id
+            )
+        )
+
+
+class SqlAlchemyTrackingItemRepository(TrackingItemRepositoryPort):
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def list_all_by_category(self, category_id: str) -> List[TrackingItem]:
+        result = await self.session.execute(
+            sa.select(tracking_items_table).where(
+                tracking_items_table.c.category_id == category_id
+            )
+        )
+        rows = result.fetchall()
+        return [
+            TrackingItem(
+                id=row.id,
+                category_id=row.category_id,
+                label=row.label,
+            )
+            for row in rows
+        ]
+
+    async def get_by_id(self, item_id: str) -> Optional[TrackingItem]:
+        result = await self.session.execute(
+            sa.select(tracking_items_table).where(tracking_items_table.c.id == item_id)
+        )
+        row = result.first()
+        if row is None:
+            return None
+        return TrackingItem(
+            id=row.id,
+            category_id=row.category_id,
+            label=row.label,
+        )
+
+    async def save(self, item: TrackingItem) -> None:
+        existing = await self.get_by_id(item.id)
+        if existing is None:
+            await self.session.execute(
+                tracking_items_table.insert().values(
+                    id=item.id,
+                    category_id=item.category_id,
+                    label=item.label,
+                )
+            )
+        else:
+            await self.session.execute(
+                sa.update(tracking_items_table)
+                .where(tracking_items_table.c.id == item.id)
+                .values(
+                    category_id=item.category_id,
+                    label=item.label,
+                )
+            )
+
+    async def delete(self, item_id: str) -> None:
+        await self.session.execute(
+            sa.delete(tracking_items_table).where(tracking_items_table.c.id == item_id)
+        )
+
+
 class SqlAlchemyTransactionRepository(TransactionRepositoryPort):
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -201,6 +379,98 @@ class SqlAlchemyTransactionRepository(TransactionRepositoryPort):
             )
             for row in rows
         ]
+
+
+class SqlAlchemyGenericTransactionRepository(GenericTransactionRepositoryPort):
+    """
+    Persists the generic Transaction aggregate into:
+    - transactions_table (header)
+    - transaction_line_items_table
+    - transaction_secondary_items_table
+    """
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def save(self, tx: Transaction) -> None:
+        # Insert header into existing transactions_table
+        await self.session.execute(
+            transactions_table.insert().values(
+                id=tx.id,
+                timestamp=tx.timestamp,
+                client_id=tx.client_id,
+                client_name=tx.client_name,
+                container_type_id="",  # legacy column; not used for generic model
+                direction=tx.direction,
+                quantity=0,  # legacy column; detailed in line items
+            )
+        )
+
+        # Insert line items
+        for li in tx.line_items:
+            await self.session.execute(
+                transaction_line_items_table.insert().values(
+                    transaction_id=tx.id,
+                    tracking_item_id=li.tracking_item_id,
+                    label=li.label,
+                    quantity=li.quantity,
+                )
+            )
+
+        # Insert secondary items
+        for secondary_id in tx.secondary_items:
+            await self.session.execute(
+                transaction_secondary_items_table.insert().values(
+                    transaction_id=tx.id,
+                    tracking_item_id=secondary_id,
+                )
+            )
+
+    async def list_all(self) -> List[Transaction]:
+        # Fetch all transaction headers
+        result = await self.session.execute(sa.select(transactions_table))
+        tx_rows = result.fetchall()
+        transactions: list[Transaction] = []
+
+        for tx_row in tx_rows:
+            # Load line items
+            li_result = await self.session.execute(
+                sa.select(transaction_line_items_table).where(
+                    transaction_line_items_table.c.transaction_id == tx_row.id
+                )
+            )
+            li_rows = li_result.fetchall()
+            line_items = [
+                TransactionLineItem(
+                    tracking_item_id=li_row.tracking_item_id,
+                    label=li_row.label,
+                    quantity=li_row.quantity,
+                )
+                for li_row in li_rows
+            ]
+
+            # Load secondary items
+            sec_result = await self.session.execute(
+                sa.select(transaction_secondary_items_table.c.tracking_item_id).where(
+                    transaction_secondary_items_table.c.transaction_id == tx_row.id
+                )
+            )
+            secondary_items = [row.tracking_item_id for row in sec_result.fetchall()]
+
+            transactions.append(
+                Transaction(
+                    id=tx_row.id,
+                    timestamp=tx_row.timestamp,
+                    client_id=tx_row.client_id,
+                    client_name=tx_row.client_name,
+                    direction=tx_row.direction,
+                    line_items=line_items,
+                    secondary_items=secondary_items,
+                    notes=None,  # notes column to be added later if needed
+                )
+            )
+
+        return transactions
 
 
 class SqlAlchemyBalanceQuery(BalanceQueryPort):
