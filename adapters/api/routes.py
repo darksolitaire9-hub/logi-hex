@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Form
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 # seeding below
@@ -6,16 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.facades import LogiFacade
 from composition.container import get_facade
-from domain.entities import Balance, ContainerType
+from domain.entities import Balance, ContainerType, TrackingCategory
 from infrastructure.sqlite_repo import (
     SqlAlchemyContainerTypeRepository,
+    SqlAlchemyTrackingCategoryRepository,
     SqlAlchemyTransactionRepository,
     get_session,
 )
 
 # seeding above
 
-router = APIRouter(prefix="/api", tags=["containers"])
+router = APIRouter(prefix="/api")
 
 
 class IssueRequest(BaseModel):
@@ -163,3 +165,64 @@ async def debug_transactions(
 
 
 # temp above
+
+
+@router.post("/setup/primary-category", response_class=HTMLResponse)
+async def create_primary_category(
+    primary_name: str = Form(...),
+    session: AsyncSession = Depends(get_session),
+):
+    primary_name = primary_name.strip()
+    if not primary_name:
+        return HTMLResponse(
+            '<p class="error-msg">Name is required.</p>', status_code=400
+        )
+
+    cat_id = primary_name.lower().replace(" ", "-")
+
+    category = TrackingCategory(
+        id=cat_id,
+        name=primary_name,
+        is_balanced=True,
+    )
+
+    repo = SqlAlchemyTrackingCategoryRepository(session)
+    await repo.save(category)
+    await session.commit()
+
+    html = f"""
+    <p>Primary category <strong>{category.name}</strong> created.</p>
+    <p>
+      <a href="/ui">Go to dashboard →</a>
+    </p>
+    """
+    return HTMLResponse(content=html)
+
+
+@router.post("/setup/secondary-category", response_class=HTMLResponse)
+async def create_secondary_category(
+    secondary_name: str = Form(...),
+    session: AsyncSession = Depends(get_session),
+):
+    secondary_name = secondary_name.strip()
+    if not secondary_name:
+        return HTMLResponse(
+            '<p class="error-msg">Name is required.</p>', status_code=400
+        )
+
+    cat_id = secondary_name.lower().replace(" ", "-")
+
+    category = TrackingCategory(
+        id=cat_id,
+        name=secondary_name,
+        is_balanced=False,
+    )
+
+    repo = SqlAlchemyTrackingCategoryRepository(session)
+    await repo.save(category)
+    await session.commit()
+
+    html = f"""
+    <p>Secondary category <strong>{category.name}</strong> created.</p>
+    """
+    return HTMLResponse(content=html)

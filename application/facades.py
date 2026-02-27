@@ -36,6 +36,27 @@ class LogiFacade:
         self.tracking_item_repo = tracking_item_repo
         self.generic_tx_repo = generic_tx_repo
 
+    async def issue(
+        self,
+        name: str,
+        container_type_id: str,
+        quantity: int,
+    ):
+        try:
+            tx = await services.issue_containers(
+                name=name,
+                container_type_id=container_type_id,
+                quantity=quantity,
+                client_repo=self.client_repo,
+                container_type_repo=self.container_type_repo,
+                tx_repo=self.tx_repo,
+            )
+            await self.uow.commit()
+            return tx
+        except Exception:
+            await self.uow.rollback()
+            raise
+
     async def issue_items(
         self,
         name: str,

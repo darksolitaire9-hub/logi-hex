@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <h2>Initial setup</h2>
+
+  <div style="margin-bottom:1.25rem;">
+    <p style="color:#64748b; font-size:0.95rem;">
+      Before logging movements, tell logi-hex what you want to track.
+    </p>
+  </div>
+
+  <section style="margin-bottom:1.5rem;">
+    <h3 style="font-size:1rem; margin-bottom:0.35rem;">Primary category</h3>
+    <p style="color:#64748b; font-size:0.9rem; margin-bottom:0.75rem;">
+      This is your main tracked thing. Examples: <em>Box Types</em>, <em>Crates</em>, <em>Gas Cylinders</em>.
+      You will add items like “Red Box” or “Glass” under this category.
+    </p>
+
+    <form
+      class="setup-form"
+      hx-post="/api/setup/primary-category"
+      hx-target="#setup-primary-result"
+      hx-swap="innerHTML"
+    >
+      <div class="field">
+        <label for="primary_name">Primary category name</label>
+        <input
+          type="text"
+          id="primary_name"
+          name="primary_name"
+          placeholder="Box Types"
+          required
+          autofocus
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary">
+        Create primary category
+      </button>
+    </form>
+
+    <div id="setup-primary-result" style="margin-top:0.75rem;"></div>
+  </section>
+
+  <section id="secondary-setup" style="margin-top:1.5rem; display:none;">
+    <h3 style="font-size:1rem; margin-bottom:0.35rem;">Optional secondary category</h3>
+    <p style="color:#64748b; font-size:0.9rem; margin-bottom:0.75rem;">
+      Use this for context only, no balances. Example: <em>Food Type</em> with items like Salad, Pasta, Cheese.
+    </p>
+
+    <form
+      class="setup-form"
+      hx-post="/api/setup/secondary-category"
+      hx-target="#setup-secondary-result"
+      hx-swap="innerHTML"
+    >
+      <div class="field">
+        <label for="secondary_name">Secondary category name</label>
+        <input
+          type="text"
+          id="secondary_name"
+          name="secondary_name"
+          placeholder="Food Type"
+        />
+      </div>
+
+      <button type="submit" class="btn btn-ghost">
+        Create secondary category
+      </button>
+    </form>
+
+    <div id="setup-secondary-result" style="margin-top:0.75rem;"></div>
+  </section>
+</div>
+
+{% endblock %}

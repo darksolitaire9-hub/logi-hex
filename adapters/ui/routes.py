@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from application.facades import LogiFacade
@@ -26,7 +26,20 @@ def _slug(name: str) -> str:
 
 
 @router.get("/", response_class=HTMLResponse)
-async def main_page(request: Request, facade: LogiFacade = Depends(get_facade)):
+async def main_dashboard(
+    request: Request,
+    facade: LogiFacade = Depends(get_facade),
+):
+    categories = await facade.tracking_category_repo.list_all()
+    if not categories:
+        return RedirectResponse(url="/ui/setup", status_code=status.HTTP_302_FOUND)
+
+    primary_category = next(
+        (c for c in categories if c.is_balanced),
+        None,
+    )
+    primary_name = primary_category.name if primary_category else "Box Types"
+
     container_types = await facade.container_type_repo.list_all()
     summary = await facade.summary()
     return templates.TemplateResponse(
@@ -36,18 +49,27 @@ async def main_page(request: Request, facade: LogiFacade = Depends(get_facade)):
             "container_types": container_types,
             "summary": summary,
             "has_types": len(container_types) > 0,
+            "primary_category_name": primary_name,
         },
     )
 
 
 @router.get("/box-types", response_class=HTMLResponse)
 async def box_types_page(request: Request, facade: LogiFacade = Depends(get_facade)):
+    categories = await facade.tracking_category_repo.list_all()
+    primary_category = next(
+        (c for c in categories if c.is_balanced),
+        None,
+    )
+    primary_name = primary_category.name if primary_category else "Box Types"
+
     container_types = await facade.container_type_repo.list_all()
     return templates.TemplateResponse(
         "box_types.html",
         {
             "request": request,
             "container_types": container_types,
+            "primary_category_name": primary_name,
         },
     )
 
@@ -174,5 +196,19 @@ async def delete_box_type(
         {
             "request": request,
             "container_types": container_types,
+        },
+    )
+
+
+@router.get("/setup", response_class=HTMLResponse)
+async def setup_home(
+    request: Request,
+    facade: LogiFacade = Depends(get_facade),
+):
+    return templates.TemplateResponse(
+        "setup.html",
+        {
+            "request": request,
+            "primary_category_name": "Box Types",
         },
     )
