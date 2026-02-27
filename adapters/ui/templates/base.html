@@ -333,10 +333,13 @@
             <h1>📦 logi-hex</h1>
             <nav>
                 <a href="/ui">Dashboard</a>
+                {% if setup_complete is defined and setup_complete %}
                 <a href="/ui/box-types">
                     {{ primary_category_name if primary_category_name is defined
                     else "Box Types" }}
                 </a>
+                <a href="/ui/items/primary">Items</a>
+                {% endif %}
             </nav>
         </header>
 

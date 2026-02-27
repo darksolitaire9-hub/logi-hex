@@ -22,6 +22,12 @@ def _slug(name: str) -> str:
     return name.lower().strip().replace(" ", "-")
 
 
+async def _is_setup_complete(facade: LogiFacade) -> bool:
+    """True if at least one balanced (primary) category exists."""
+    categories = await facade.tracking_category_repo.list_all()
+    return any(c.is_balanced for c in categories)
+
+
 # ─── Pages ────────────────────────────────────────────────────────────────────
 
 
@@ -50,6 +56,7 @@ async def main_dashboard(
             "summary": summary,
             "has_types": len(container_types) > 0,
             "primary_category_name": primary_name,
+            "setup_complete": True,
         },
     )
 
@@ -70,6 +77,7 @@ async def box_types_page(request: Request, facade: LogiFacade = Depends(get_faca
             "request": request,
             "container_types": container_types,
             "primary_category_name": primary_name,
+            "setup_complete": True,
         },
     )
 
@@ -200,6 +208,77 @@ async def delete_box_type(
     )
 
 
+# ─── Tracking items management ────────────────────────────────────────────────
+
+
+async def _get_primary_category(facade: LogiFacade):
+    categories = await facade.tracking_category_repo.list_all()
+    return next((c for c in categories if c.is_balanced), None)
+
+
+async def _get_secondary_category(facade: LogiFacade):
+    categories = await facade.tracking_category_repo.list_all()
+    return next((c for c in categories if not c.is_balanced), None)
+
+
+@router.get("/items/primary", response_class=HTMLResponse)
+async def primary_items_page(
+    request: Request,
+    facade: LogiFacade = Depends(get_facade),
+):
+    primary = await _get_primary_category(facade)
+    if primary is None:
+        # Force setup if somehow no primary exists
+        return RedirectResponse(url="/ui/setup", status_code=status.HTTP_302_FOUND)
+
+    items = await facade.tracking_item_repo.list_all_by_category(primary.id)
+
+    return templates.TemplateResponse(
+        "items_primary.html",
+        {
+            "request": request,
+            "category": primary,
+            "items": items,
+            "primary_category_name": primary.name,
+            "category_id": primary.id,
+            "setup_complete": True,
+        },
+    )
+
+
+@router.get("items_secondary.html", response_class=HTMLResponse)
+async def secondary_items_page(
+    request: Request,
+    facade: LogiFacade = Depends(get_facade),
+):
+    secondary = await _get_secondary_category(facade)
+    if secondary is None:
+        # No secondary category yet; show a simple message
+        return templates.TemplateResponse(
+            "items_secondary.html",
+            {
+                "request": request,
+                "category": None,
+                "items": [],
+                "primary_category_name": "Box Types",
+                "category_id": secondary.id if secondary else None,
+                "setup_complete": True,
+            },
+        )
+
+    items = await facade.tracking_item_repo.list_all_by_category(secondary.id)
+
+    return templates.TemplateResponse(
+        "items_secondary.html",
+        {
+            "request": request,
+            "category": secondary,
+            "items": items,
+            "primary_category_name": "Box Types",
+        },
+    )
+
+
 @router.get("/setup", response_class=HTMLResponse)
 async def setup_home(
     request: Request,
@@ -210,5 +289,6 @@ async def setup_home(
         {
             "request": request,
             "primary_category_name": "Box Types",
+            "setup_complete": False,
         },
     )

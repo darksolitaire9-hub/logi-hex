@@ -1,5 +1,8 @@
-from fastapi import APIRouter, Depends, Form
+from pathlib import Path
+
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 # seeding below
@@ -7,15 +10,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.facades import LogiFacade
 from composition.container import get_facade
-from domain.entities import Balance, ContainerType, TrackingCategory
+from domain.entities import Balance, ContainerType, TrackingCategory, TrackingItem
 from infrastructure.sqlite_repo import (
     SqlAlchemyContainerTypeRepository,
     SqlAlchemyTrackingCategoryRepository,
+    SqlAlchemyTrackingItemRepository,
     SqlAlchemyTransactionRepository,
     get_session,
 )
 
 # seeding above
+
+BASE_DIR = Path(__file__).parent.parent / "ui"
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 router = APIRouter(prefix="/api")
 
@@ -226,3 +233,53 @@ async def create_secondary_category(
     <p>Secondary category <strong>{category.name}</strong> created.</p>
     """
     return HTMLResponse(content=html)
+
+
+# ─── Tracking items management (primary & secondary) ──────────────────────────
+
+
+@router.post("/items/add", response_class=HTMLResponse)
+async def add_item(
+    request: Request,
+    category_id: str = Form(...),
+    label: str = Form(...),
+    session: AsyncSession = Depends(get_session),
+):
+    label = label.strip()
+    if not label:
+        return HTMLResponse(
+            '<p class="error-msg">Item name is required.</p>',
+            status_code=400,
+        )
+
+    item_id = label.lower().replace(" ", "-")
+    repo = SqlAlchemyTrackingItemRepository(session)
+    item = TrackingItem(id=item_id, category_id=category_id, label=label)
+    await repo.save(item)
+    await session.commit()
+
+    # Re-fetch and return the updated table partial
+    items = await repo.list_all_by_category(category_id)
+    return templates.TemplateResponse(
+        "partials/items_table.html",
+        {"request": request, "items": items, "category_id": category_id},
+    )
+
+
+@router.post("/items/delete", response_class=HTMLResponse)
+async def delete_item(
+    request: Request,
+    item_id: str = Form(...),
+    category_id: str = Form(...),
+    session: AsyncSession = Depends(get_session),
+):
+    repo = SqlAlchemyTrackingItemRepository(session)
+    await repo.delete(item_id)
+    await session.commit()
+
+    # Re-fetch and return the updated table partial
+    items = await repo.list_all_by_category(category_id)
+    return templates.TemplateResponse(
+        "partials/items_table.html",
+        {"request": request, "items": items, "category_id": category_id},
+    )
