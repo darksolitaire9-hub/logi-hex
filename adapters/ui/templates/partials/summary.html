@@ -1,26 +1,23 @@
-{% if summary.clients %}
-  {% for client in summary.clients %}
-    <div class="summary-client">
-      <div class="summary-client-header">
-        <span>{{ client.client_name | title }}</span>
-        <span class="total-badge">{{ client.total_outstanding }} 📦</span>
-      </div>
-      <div class="summary-rows">
-        {% for b in client.balances %}
-          <div class="summary-row">
-            <span>{{ b.container_label }}</span>
-            <span>{{ b.balance }}</span>
-          </div>
-        {% endfor %}
-      </div>
+{% if summary.clients %} {% for client in summary.clients %}
+<div class="client-block">
+    <div class="client-header">
+        <span>{{ client.client_name }}</span>
+        <span class="total-badge">{{ client.total_outstanding }} items</span>
     </div>
-  {% endfor %}
-
-  <div class="grand-total">
+    <div class="client-lines">
+        {% for b in client.balances %}
+        <div class="summary-line">
+            <span>{{ b.balance }} × {{ b.container_label }}</span>
+            <span class="status-out">OUT</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+<div class="grand-total">
     <span>Grand total</span>
-    <span>{{ summary.grand_total }} 📦</span>
-  </div>
-
+    <span>{{ summary.grand_total }} items</span>
+</div>
 {% else %}
-  <p class="empty-state">No outstanding balances. All settled ✓</p>
+<p class="empty-state">No outstanding items. Everything is back in.</p>
 {% endif %}

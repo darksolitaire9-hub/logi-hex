@@ -4,378 +4,63 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>logi-hex</title>
-        <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-        <style>
-            *,
-            *::before,
-            *::after {
-                box-sizing: border-box;
-                margin: 0;
-                padding: 0;
-            }
-
-            body {
-                font-family:
-                    system-ui,
-                    -apple-system,
-                    sans-serif;
-                background: #f0f2f5;
-                color: #1a1a2e;
-                min-height: 100vh;
-            }
-
-            header {
-                background: #1a1a2e;
-                color: white;
-                padding: 1rem 2rem;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            }
-
-            header h1 {
-                font-size: 1.3rem;
-                letter-spacing: 0.05em;
-            }
-
-            header nav a {
-                color: #94a3b8;
-                text-decoration: none;
-                font-size: 0.9rem;
-                margin-left: 1.5rem;
-                transition: color 0.15s;
-            }
-
-            header nav a:hover {
-                color: white;
-            }
-
-            main {
-                max-width: 860px;
-                margin: 2rem auto;
-                padding: 0 1.5rem;
-            }
-
-            .card {
-                background: white;
-                border-radius: 12px;
-                padding: 1.5rem;
-                margin-bottom: 1.5rem;
-                box-shadow: 0 1px 6px rgba(0, 0, 0, 0.07);
-            }
-
-            .card h2 {
-                font-size: 0.75rem;
-                font-weight: 700;
-                letter-spacing: 0.1em;
-                text-transform: uppercase;
-                color: #64748b;
-                margin-bottom: 1.25rem;
-            }
-
-            /* Buttons */
-            .btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.4rem;
-                padding: 0.55rem 1.2rem;
-                border: none;
-                border-radius: 8px;
-                font-size: 0.9rem;
-                font-weight: 600;
-                cursor: pointer;
-                transition:
-                    opacity 0.15s,
-                    transform 0.1s;
-                text-decoration: none;
-            }
-
-            .btn:active {
-                transform: scale(0.97);
-            }
-            .btn:disabled {
-                opacity: 0.4;
-                cursor: not-allowed;
-            }
-
-            .btn-out {
-                background: #ef4444;
-                color: white;
-                font-size: 1rem;
-                padding: 0.75rem 2rem;
-            }
-            .btn-in {
-                background: #22c55e;
-                color: white;
-                font-size: 1rem;
-                padding: 0.75rem 2rem;
-            }
-            .btn-ghost {
-                background: transparent;
-                color: #64748b;
-                border: 1px solid #e2e8f0;
-            }
-            .btn-ghost:hover {
-                background: #f8fafc;
-            }
-            .btn-primary {
-                background: #2563eb;
-                color: white;
-            }
-            .btn-primary:hover {
-                background: #1d4ed8;
-            }
-            .btn-danger {
-                background: #fee2e2;
-                color: #dc2626;
-            }
-            .btn-danger:hover {
-                background: #fecaca;
-            }
-
-            /* Action row */
-            .action-row {
-                display: flex;
-                gap: 1rem;
-                align-items: center;
-                flex-wrap: wrap;
-            }
-
-            /* Summary table */
-            .summary-client {
-                margin-bottom: 1.25rem;
-            }
-
-            .summary-client-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: baseline;
-                font-weight: 700;
-                font-size: 1rem;
-                margin-bottom: 0.4rem;
-                color: #1a1a2e;
-            }
-
-            .summary-client-header .total-badge {
-                font-size: 0.85rem;
-                background: #fef3c7;
-                color: #92400e;
-                border-radius: 999px;
-                padding: 0.15rem 0.6rem;
-                font-weight: 700;
-            }
-
-            .summary-rows {
-                padding-left: 1rem;
-            }
-
-            .summary-row {
-                display: flex;
-                justify-content: space-between;
-                padding: 0.25rem 0;
-                font-size: 0.9rem;
-                color: #475569;
-                border-bottom: 1px solid #f1f5f9;
-            }
-
-            .grand-total {
-                display: flex;
-                justify-content: space-between;
-                font-weight: 700;
-                font-size: 1rem;
-                padding-top: 1rem;
-                border-top: 2px solid #e2e8f0;
-                margin-top: 0.5rem;
-            }
-
-            /* Modal */
-            .modal-backdrop {
-                position: fixed;
-                inset: 0;
-                background: rgba(0, 0, 0, 0.45);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 100;
-            }
-
-            .modal {
-                background: white;
-                border-radius: 14px;
-                padding: 2rem;
-                width: 100%;
-                max-width: 440px;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-                position: relative;
-            }
-
-            .modal h2 {
-                font-size: 1.15rem;
-                margin-bottom: 1.5rem;
-            }
-            .modal h2.out {
-                color: #ef4444;
-            }
-            .modal h2.in {
-                color: #22c55e;
-            }
-
-            .modal-close {
-                position: absolute;
-                top: 1rem;
-                right: 1rem;
-                background: none;
-                border: none;
-                font-size: 1.2rem;
-                cursor: pointer;
-                color: #94a3b8;
-            }
-
-            .modal-close:hover {
-                color: #1a1a2e;
-            }
-
-            /* Form elements */
-            .field {
-                margin-bottom: 1.1rem;
-            }
-            .field label {
-                display: block;
-                font-size: 0.8rem;
-                font-weight: 600;
-                color: #64748b;
-                margin-bottom: 0.35rem;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-            }
-
-            .field input,
-            .field select {
-                width: 100%;
-                padding: 0.6rem 0.75rem;
-                border: 1.5px solid #e2e8f0;
-                border-radius: 8px;
-                font-size: 0.95rem;
-                background: #f8fafc;
-                transition: border-color 0.15s;
-                outline: none;
-            }
-
-            .field input:focus,
-            .field select:focus {
-                border-color: #2563eb;
-                background: white;
-            }
-
-            .field-row {
-                display: flex;
-                gap: 1rem;
-            }
-            .field-row .field {
-                flex: 1;
-            }
-
-            /* Error */
-            .error-msg {
-                background: #fef2f2;
-                border: 1px solid #fecaca;
-                color: #dc2626;
-                border-radius: 8px;
-                padding: 0.6rem 0.85rem;
-                font-size: 0.85rem;
-                margin-bottom: 1rem;
-            }
-
-            /* Onboarding */
-            .onboarding {
-                text-align: center;
-                padding: 3rem 1rem;
-            }
-
-            .onboarding p {
-                color: #64748b;
-                margin-bottom: 1.5rem;
-                font-size: 1rem;
-            }
-
-            /* Box types table */
-            .type-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 0.6rem 0;
-                border-bottom: 1px solid #f1f5f9;
-                font-size: 0.95rem;
-            }
-
-            .type-row:last-child {
-                border-bottom: none;
-            }
-
-            .empty-state {
-                color: #94a3b8;
-                font-size: 0.9rem;
-                text-align: center;
-                padding: 1.5rem 0;
-            }
-
-            /* HTMX indicator */
-            .htmx-indicator {
-                display: none;
-            }
-            .htmx-request .htmx-indicator {
-                display: inline;
-            }
-        </style>
+        <script src="/static/js/htmx.min.js"></script>
+        <link rel="stylesheet" href="/static/css/pico.min.css" />
     </head>
     <body>
-        <header>
-            <h1>📦 logi-hex</h1>
+        <header class="container-fluid">
             <nav>
-                <a href="/ui">Dashboard</a>
-                {% if setup_complete is defined and setup_complete %}
-                <a href="/ui/box-types">
-                    {{ primary_category_name if primary_category_name is defined
-                    else "Box Types" }}
-                </a>
-                <a href="/ui/items/primary">Items</a>
-                {% endif %}
+                <ul>
+                    <li>
+                        <a href="/ui" class="header-brand">
+                            📦 <strong>logi-hex</strong>
+                        </a>
+                    </li>
+                </ul>
+                <ul>
+                    <li>
+                        <a
+                            href="/ui"
+                            class="{% if request.url.path in ['/ui', '/ui/'] %}contrast{% endif %}"
+                        >
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            href="/ui/items/primary"
+                            class="{% if request.url.path.startswith('/ui/items/primary') %}contrast{% endif %}"
+                        >
+                            {{ primary_category_name if primary_category_name is
+                            defined else 'Primary items' }}
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            href="/ui/items/content"
+                            class="{% if request.url.path.startswith('/ui/items/content') %}contrast{% endif %}"
+                        >
+                            Content
+                        </a>
+                    </li>
+                </ul>
             </nav>
         </header>
 
-        <main>{% block content %}{% endblock %}</main>
+        <main class="container">{% block content %}{% endblock %}</main>
 
-        <!-- Modal container: HTMX swaps content in here -->
         <div id="modal-container"></div>
 
         <script>
-            // Close modal on ESC or backdrop click
+            function closeModal() {
+                const container = document.getElementById("modal-container");
+                if (container) {
+                    container.innerHTML = "";
+                }
+            }
             document.addEventListener("keydown", (e) => {
                 if (e.key === "Escape") closeModal();
             });
-
-            function closeModal() {
-                document.getElementById("modal-container").innerHTML = "";
-            }
-
-            function openModal(direction) {
-                htmx.ajax("GET", "/ui/modal/log?direction=" + direction, {
-                    target: "#modal-container",
-                    swap: "innerHTML",
-                });
-            }
-
-            // Close when clicking backdrop
-            document
-                .getElementById("modal-container")
-                .addEventListener("click", function (e) {
-                    if (
-                        e.target === this ||
-                        e.target.classList.contains("modal-backdrop")
-                    ) {
-                        closeModal();
-                    }
-                });
         </script>
     </body>
 </html>

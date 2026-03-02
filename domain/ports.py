@@ -139,9 +139,9 @@ class BalanceQueryPort(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_balance_for(self, client_id: str, container_type_id: str) -> int:
+    async def get_balance_for(self, client_id: str, tracking_item_id: str) -> int:
         """
-        Return SUM(OUT) - SUM(IN) for a single (client_id, container_type_id).
+        Return SUM(OUT) - SUM(IN) for a single (client_id, tracking_item_id).
         If there are no transactions, return 0.
         """
         raise NotImplementedError

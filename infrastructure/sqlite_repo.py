@@ -478,81 +478,60 @@ class SqlAlchemyBalanceQuery(BalanceQueryPort):
         self.session = session
 
     async def get_balances(self) -> List[Balance]:
-        # OUT adds to balance (client owes more), IN subtracts (they return)
-        out_case = sa.case(
-            (transactions_table.c.direction == "OUT", transactions_table.c.quantity),
-            else_=0,
-        )
+        t = transactions_table
+        li = transaction_line_items_table
+        ti = tracking_items_table
 
-        in_case = sa.case(
-            (transactions_table.c.direction == "IN", transactions_table.c.quantity),
-            else_=0,
-        )
-
-        # balance = SUM(OUT - IN)
-        balance_expr = sa.func.sum(out_case - in_case)
+        out_qty = sa.case((t.c.direction == "OUT", li.c.quantity), else_=0)
+        in_qty = sa.case((t.c.direction == "IN", li.c.quantity), else_=0)
+        balance_expr = sa.func.sum(out_qty - in_qty)
 
         stmt = (
             sa.select(
-                transactions_table.c.client_id.label("client_id"),
-                sa.func.max(transactions_table.c.client_name).label("client_name"),
-                transactions_table.c.container_type_id.label("container_type_id"),
-                sa.func.max(container_types_table.c.label).label("container_label"),
+                t.c.client_id,
+                sa.func.max(t.c.client_name).label("client_name"),
+                li.c.tracking_item_id.label("container_type_id"),
+                sa.func.max(ti.c.label).label("container_label"),
                 balance_expr.label("balance"),
             )
-            .join(
-                container_types_table,
-                container_types_table.c.id == transactions_table.c.container_type_id,
-                isouter=True,  # LEFT OUTER JOIN for robustness
+            .join(li, li.c.transaction_id == t.c.id)
+            .join(ti, ti.c.id == li.c.tracking_item_id, isouter=True)
+            .group_by(t.c.client_id, li.c.tracking_item_id)
+        )
+
+        rows = (await self.session.execute(stmt)).fetchall()
+        return [
+            Balance(
+                client_id=row.client_id,
+                client_name=row.client_name,
+                container_type_id=row.container_type_id,
+                container_label=row.container_label or row.container_type_id,
+                balance=row.balance,
             )
-            .group_by(
-                transactions_table.c.client_id,
-                transactions_table.c.container_type_id,
+            for row in rows
+            if row.balance != 0
+        ]
+
+    async def get_balance_for(self, client_id: str, tracking_item_id: str) -> int:
+        t = transactions_table
+        li = transaction_line_items_table
+
+        out_qty = sa.case((t.c.direction == "OUT", li.c.quantity), else_=0)
+        in_qty = sa.case((t.c.direction == "IN", li.c.quantity), else_=0)
+        balance_expr = sa.func.sum(out_qty - in_qty)
+
+        stmt = (
+            sa.select(balance_expr)
+            .select_from(t)
+            .join(li, li.c.transaction_id == t.c.id)
+            .where(
+                t.c.client_id == client_id,
+                li.c.tracking_item_id == tracking_item_id,
             )
         )
 
-        result = await self.session.execute(stmt)
-        rows = result.fetchall()
-
-        balances: List[Balance] = []
-        for row in rows:
-            if row.balance == 0:
-                continue
-            balances.append(
-                Balance(
-                    client_id=row.client_id,
-                    client_name=row.client_name,
-                    container_type_id=row.container_type_id,
-                    container_label=row.container_label or row.container_type_id,
-                    balance=row.balance,
-                )
-            )
-        return balances
-
-    async def get_balance_for(self, client_id: str, container_type_id: str) -> int:
-        # used by domain service to validate `/receive`
-        out_case = sa.case(
-            (transactions_table.c.direction == "OUT", transactions_table.c.quantity),
-            else_=0,
-        )
-        in_case = sa.case(
-            (transactions_table.c.direction == "IN", transactions_table.c.quantity),
-            else_=0,
-        )
-
-        balance_expr = sa.func.sum(out_case - in_case)  # OUT - IN
-
-        stmt = sa.select(balance_expr).where(
-            transactions_table.c.client_id == client_id,
-            transactions_table.c.container_type_id == container_type_id,
-        )
-
-        result = await self.session.execute(stmt)
-        value = result.scalar()
-        return value or 0  # treat no rows as 0
-
-
-# infrastructure/sqlite_repo.py  (add after SqlAlchemyBalanceQuery)
+        value = (await self.session.execute(stmt)).scalar()
+        return value or 0
 
 
 class SqlAlchemySummaryQuery(SummaryQueryPort):
@@ -560,45 +539,35 @@ class SqlAlchemySummaryQuery(SummaryQueryPort):
         self.session = session
 
     async def get_summary(self) -> SummaryResult:
-        out_case = sa.case(
-            (transactions_table.c.direction == "OUT", transactions_table.c.quantity),
-            else_=0,
-        )
-        in_case = sa.case(
-            (transactions_table.c.direction == "IN", transactions_table.c.quantity),
-            else_=0,
-        )
-        balance_expr = sa.func.sum(out_case - in_case)
+        t = transactions_table
+        li = transaction_line_items_table
+        ti = tracking_items_table
+
+        out_qty = sa.case((t.c.direction == "OUT", li.c.quantity), else_=0)
+        in_qty = sa.case((t.c.direction == "IN", li.c.quantity), else_=0)
+        balance_expr = sa.func.sum(out_qty - in_qty)
 
         stmt = (
             sa.select(
-                transactions_table.c.client_id.label("client_id"),
-                sa.func.max(transactions_table.c.client_name).label("client_name"),
-                transactions_table.c.container_type_id.label("container_type_id"),
-                sa.func.max(container_types_table.c.label).label("container_label"),
+                t.c.client_id,
+                sa.func.max(t.c.client_name).label("client_name"),
+                li.c.tracking_item_id.label("container_type_id"),
+                sa.func.max(ti.c.label).label("container_label"),
                 balance_expr.label("balance"),
             )
-            .join(
-                container_types_table,
-                container_types_table.c.id == transactions_table.c.container_type_id,
-                isouter=True,
-            )
-            .group_by(
-                transactions_table.c.client_id,
-                transactions_table.c.container_type_id,
-            )
+            .join(li, li.c.transaction_id == t.c.id)
+            .join(ti, ti.c.id == li.c.tracking_item_id, isouter=True)
+            .group_by(t.c.client_id, li.c.tracking_item_id)
         )
 
-        result = await self.session.execute(stmt)
-        rows = result.fetchall()
+        rows = (await self.session.execute(stmt)).fetchall()
 
-        # group rows by client
         clients_map: dict[str, ClientBalanceSummary] = {}
         for row in rows:
             if row.balance == 0:
                 continue
 
-            balance = Balance(
+            b = Balance(
                 client_id=row.client_id,
                 client_name=row.client_name,
                 container_type_id=row.container_type_id,
@@ -614,13 +583,14 @@ class SqlAlchemySummaryQuery(SummaryQueryPort):
                     balances=[],
                 )
 
-            clients_map[row.client_id].balances.append(balance)
+            clients_map[row.client_id].balances.append(b)
             clients_map[row.client_id].total_outstanding += row.balance
 
         clients = list(clients_map.values())
-        grand_total = sum(c.total_outstanding for c in clients)
-
-        return SummaryResult(clients=clients, grand_total=grand_total)
+        return SummaryResult(
+            clients=clients,
+            grand_total=sum(c.total_outstanding for c in clients),
+        )
 
 
 class SqlAlchemyUnitOfWork(UnitOfWorkPort):

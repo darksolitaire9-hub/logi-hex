@@ -1,14 +1,14 @@
 # main.py
 
-from contextlib import asynccontextmanager
 import logging
+from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, staticfiles
 from fastapi.responses import JSONResponse
 
 from adapters.api.routes import router as api_router
-from adapters.ui.routes import router as ui_router          # new
+from adapters.ui.routes import router as ui_router  # new
 from domain.exceptions import InsufficientBalanceError, UnknownContainerTypeError
 from infrastructure.sqlite_repo import init_db
 
@@ -29,9 +29,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+origins = [
+    "http://localhost:5173",
+]
+
+app.mount("/static", staticfiles.StaticFiles(directory="static"), name="static")
+
 
 @app.exception_handler(UnknownContainerTypeError)
-async def unknown_container_type_handler(request: Request, exc: UnknownContainerTypeError):
+async def unknown_container_type_handler(
+    request: Request, exc: UnknownContainerTypeError
+):
     return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
@@ -47,7 +55,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 app.include_router(api_router)
-app.include_router(ui_router)                               # new
+app.include_router(ui_router)  # new
 
 
 if __name__ == "__main__":

@@ -1,0 +1,268 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { ArrowRight, CheckCircle, Package, Tag } from "lucide-vue-next";
+import { useApp } from "~/composables/useApp";
+
+const router = useRouter();
+const { config, updateConfig } = useApp();
+
+// Local state
+const step = ref(1);
+const primaryName = ref(config.value.primaryCategoryName || "Box Types");
+const contentName = ref(config.value.contentCategoryName || "Contents");
+const primaryError = ref("");
+const saved = ref(false);
+
+// Step 1 handler
+function handleStep1(e: Event) {
+    e.preventDefault();
+    const trimmed = primaryName.value.trim();
+
+    if (!trimmed) {
+        primaryError.value = "Please enter a name for your primary category.";
+        return;
+    }
+
+    primaryError.value = "";
+    step.value = 2;
+}
+
+// Finish handler
+function handleFinish(e: Event) {
+    e.preventDefault();
+
+    updateConfig({
+        primaryCategoryName: primaryName.value.trim() || "Box Types",
+        contentCategoryName: contentName.value.trim() || "Contents",
+        isSetupComplete: true,
+    });
+
+    saved.value = true;
+
+    setTimeout(() => {
+        router.push("/");
+    }, 1200);
+}
+</script>
+
+<template>
+    <div class="max-w-[480px] mx-auto">
+        <!-- Header -->
+        <div class="mb-8 text-center">
+            <div
+                class="w-14 h-14 rounded-2xl bg-[#1a1a2e] flex items-center justify-center mx-auto mb-4"
+            >
+                <span class="text-white text-xl font-bold">LH</span>
+            </div>
+            <h1 class="text-[#1a1a2e] mb-1">Set up logi-hex</h1>
+            <p class="text-sm text-[#717182]">
+                A quick 2-step setup to get you started. You can change these
+                any time.
+            </p>
+        </div>
+
+        <!-- Progress -->
+        <div
+            class="flex items-center gap-2 mb-8"
+            :aria-label="`Step ${step} of 2`"
+        >
+            <div
+                v-for="s in [1, 2]"
+                :key="s"
+                class="flex items-center gap-2 flex-1"
+            >
+                <div
+                    class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors"
+                    :class="{
+                        'bg-[#16a34a] text-white': step > s,
+                        'bg-[#1a1a2e] text-white': step === s,
+                        'bg-[#f0f0f4] text-[#a0a0b0]': step < s,
+                    }"
+                    :aria-current="step === s ? 'step' : undefined"
+                >
+                    <CheckCircle v-if="step > s" class="w-4 h-4" />
+                    <span v-else>{{ s }}</span>
+                </div>
+
+                <div
+                    class="text-xs hidden sm:block"
+                    :class="step >= s ? 'text-[#1a1a2e]' : 'text-[#a0a0b0]'"
+                >
+                    {{ s === 1 ? "Primary category" : "Content category" }}
+                </div>
+
+                <div
+                    v-if="s < 2"
+                    class="flex-1 h-0.5 rounded mx-1"
+                    :class="step > s ? 'bg-[#16a34a]' : 'bg-[#e0e0e8]'"
+                />
+            </div>
+        </div>
+
+        <!-- Step 1 -->
+        <div
+            v-if="step === 1"
+            class="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+        >
+            <div class="flex items-center gap-2 mb-1">
+                <Package class="w-5 h-5 text-[#717182]" />
+                <h2 class="text-[#1a1a2e]">What do you want to track?</h2>
+            </div>
+
+            <p class="text-sm text-[#717182] mb-5">
+                Give a name to your main category of containers. For example:
+                <em>"Box Types"</em>, <em>"Crates"</em>, or
+                <em>"Containers"</em>.
+            </p>
+
+            <form @submit="handleStep1" novalidate>
+                <div class="mb-4">
+                    <label
+                        for="primary-category"
+                        class="block text-sm font-medium text-[#1a1a2e] mb-1.5"
+                    >
+                        Primary category name
+                        <span class="text-[#ea580c]">*</span>
+                    </label>
+
+                    <input
+                        id="primary-category"
+                        type="text"
+                        v-model="primaryName"
+                        placeholder="e.g. Box Types"
+                        :aria-invalid="!!primaryError"
+                        :aria-describedby="
+                            primaryError ? 'primary-error' : undefined
+                        "
+                        class="w-full px-3 py-2.5 rounded-lg border bg-white text-[#1a1a2e] placeholder:text-[#a0a0b0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1a2e] transition-colors"
+                        :class="
+                            primaryError
+                                ? 'border-[#d4183d]'
+                                : 'border-[rgba(0,0,0,0.15)]'
+                        "
+                        autofocus
+                    />
+
+                    <p
+                        v-if="primaryError"
+                        id="primary-error"
+                        class="mt-1.5 text-xs text-[#d4183d]"
+                    >
+                        {{ primaryError }}
+                    </p>
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#1a1a2e] hover:bg-[#2e2e4a] text-white text-sm font-medium transition-colors"
+                >
+                    Continue
+                    <ArrowRight class="w-4 h-4" />
+                </button>
+            </form>
+        </div>
+
+        <!-- Step 2 -->
+        <div
+            v-if="step === 2 && !saved"
+            class="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+        >
+            <div class="flex items-center gap-2 mb-1">
+                <Tag class="w-5 h-5 text-[#717182]" />
+                <h2 class="text-[#1a1a2e]">Optional: content category</h2>
+            </div>
+
+            <p class="text-sm text-[#717182] mb-5">
+                Would you like to tag movements with additional information? For
+                example: <em>"Contents"</em>, <em>"Dish Name"</em>, or
+                <em>"Product"</em>.
+            </p>
+
+            <form @submit="handleFinish" novalidate>
+                <div class="mb-4">
+                    <label
+                        for="content-category"
+                        class="block text-sm font-medium text-[#1a1a2e] mb-1.5"
+                    >
+                        Content category name
+                        <span class="text-[#717182] font-normal"
+                            >(optional)</span
+                        >
+                    </label>
+
+                    <input
+                        id="content-category"
+                        type="text"
+                        v-model="contentName"
+                        placeholder="e.g. Contents"
+                        class="w-full px-3 py-2.5 rounded-lg border border-[rgba(0,0,0,0.15)] bg-white text-[#1a1a2e] placeholder:text-[#a0a0b0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1a2e] transition-colors"
+                        autofocus
+                    />
+
+                    <p class="mt-1.5 text-xs text-[#717182]">
+                        Leave empty to disable content tagging entirely.
+                    </p>
+                </div>
+
+                <div class="flex gap-2">
+                    <button
+                        type="button"
+                        @click="step = 1"
+                        class="px-4 py-2.5 rounded-lg border border-[rgba(0,0,0,0.15)] text-[#1a1a2e] text-sm font-medium hover:bg-[#f0f0f4] transition-colors"
+                    >
+                        Back
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#16a34a] hover:bg-[#15803d] text-white text-sm font-medium transition-colors"
+                    >
+                        <CheckCircle class="w-4 h-4" />
+                        Save & go to dashboard
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Saved state -->
+        <div
+            v-if="saved"
+            class="bg-[#f0fdf4] rounded-2xl border border-[#bbf7d0] p-6 text-center"
+        >
+            <div
+                class="w-12 h-12 rounded-full bg-[#16a34a] flex items-center justify-center mx-auto mb-3"
+            >
+                <CheckCircle class="w-6 h-6 text-white" />
+            </div>
+
+            <h2 class="text-[#166534] mb-1">Setup complete!</h2>
+            <p class="text-sm text-[#15803d]">
+                Redirecting you to the dashboard…
+            </p>
+        </div>
+
+        <!-- Current settings summary -->
+        <div
+            class="mt-6 px-4 py-3 rounded-xl bg-[#f8f8fa] border border-[rgba(0,0,0,0.06)] text-sm text-[#717182]"
+        >
+            <strong class="text-[#1a1a2e]">Current settings</strong>
+
+            <div class="mt-1.5 flex flex-col gap-0.5">
+                <span>
+                    Primary:
+                    <em class="text-[#1a1a2e] not-italic font-medium">
+                        {{ config.primaryCategoryName }}
+                    </em>
+                </span>
+
+                <span>
+                    Content:
+                    <em class="text-[#1a1a2e] not-italic font-medium">
+                        {{ config.contentCategoryName || "—" }}
+                    </em>
+                </span>
+            </div>
+        </div>
+    </div>
+</template>
