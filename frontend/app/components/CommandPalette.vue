@@ -17,7 +17,7 @@ import {
     Package,
     Settings2,
     Users,
-    Tag,
+    Tags,
     CornerDownLeft,
     Hash,
 } from "lucide-vue-next";
@@ -119,7 +119,7 @@ const allItems = computed<ResultItem[]>(() => {
         group: "Pages",
         label: cfg.contentCategoryName || "Content Items",
         sublabel: "Manage content tags",
-        icon: Tag,
+        icon: Tags,
         action: () => run(() => router.push("/content")),
     });
     items.push({
@@ -163,7 +163,7 @@ const allItems = computed<ResultItem[]>(() => {
             group: cfg.contentCategoryName || "Content",
             label: ci.label,
             sublabel: "Content tag · informational",
-            icon: Tag,
+            icon: Tags,
             accentColor: "purple",
             action: () => run(() => router.push("/items/content")),
         });

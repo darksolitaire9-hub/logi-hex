@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref } from "vue";
 import { useRoute } from "vue-router";
-import { Package, Settings2, Layers, Search } from "lucide-vue-next";
+import { Package, Settings2, Layers, Search, Tags } from "lucide-vue-next";
 import { Motion, AnimatePresence } from "motion-v";
 import { useApp } from "~/composables/useApp";
 
@@ -60,7 +60,7 @@ const navLinks = computed(() => [
     {
         to: "/content",
         label: config.value.contentCategoryName,
-        icon: Settings2,
+        icon: Tags,
     },
 ]);
 
