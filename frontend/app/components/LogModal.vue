@@ -10,7 +10,8 @@ import {
     watchEffect,
 } from "vue";
 import { X, ArrowUpRight, ArrowDownLeft } from "lucide-vue-next";
-import { useApp } from "~/composables/useApp"; // adjust path if yours differs
+import { useApp } from "~/composables/useApp";
+import LogPrimaryPicker from "~/components/log/LogPrimaryPicker.vue";
 
 type Direction = "OUT" | "IN";
 
@@ -36,11 +37,27 @@ const isSubmitting = ref(false);
 
 const errors = reactive<Record<string, string>>({});
 
+// quantities keyed by primary item id
 const quantities = reactive<Record<string, string>>({});
 watchEffect(() => {
     for (const pi of primaryItems.value) {
         if (!(pi.id in quantities)) quantities[pi.id] = "";
     }
+});
+
+// selected primary item (single)
+const selectedPrimaryId = ref<string | null>(null);
+
+// computed proxy for the selected primary's quantity
+const primaryQuantity = computed({
+    get() {
+        if (!selectedPrimaryId.value) return "";
+        return quantities[selectedPrimaryId.value] ?? "";
+    },
+    set(v: string) {
+        if (!selectedPrimaryId.value) return;
+        quantities[selectedPrimaryId.value] = v;
+    },
 });
 
 const selectedContent = ref<Set<string>>(new Set());
@@ -80,13 +97,17 @@ const filteredSuggestions = computed(() => {
     );
 });
 
+// validate client + selected primary quantity
 const validate = () => {
     const errs: Record<string, string> = {};
     if (!clientName.value.trim()) errs.clientName = "Client name is required.";
-    const hasQty = Object.values(quantities).some(
-        (v) => v !== "" && parseInt(v, 10) > 0,
-    );
-    if (!hasQty) errs.quantities = "Enter a quantity for at least one item.";
+
+    const hasQty =
+        selectedPrimaryId.value != null &&
+        primaryQuantity.value !== "" &&
+        parseInt(primaryQuantity.value, 10) > 0;
+
+    if (!hasQty) errs.quantities = "Enter a quantity for the selected item.";
     return errs;
 };
 
@@ -102,9 +123,15 @@ const handleSubmit = async () => {
 
     isSubmitting.value = true;
 
-    const items = Object.entries(quantities)
-        .filter(([, v]) => v !== "" && parseInt(v, 10) > 0)
-        .map(([itemId, v]) => ({ itemId, quantity: parseInt(v, 10) }));
+    const items =
+        selectedPrimaryId.value == null
+            ? []
+            : [
+                  {
+                      itemId: selectedPrimaryId.value,
+                      quantity: parseInt(primaryQuantity.value || "0", 10),
+                  },
+              ].filter((x) => x.quantity > 0);
 
     logMovement({
         direction: props.direction,
@@ -194,6 +221,8 @@ watch(
         clientName.value = "";
         note.value = "";
         selectedContent.value = new Set();
+        selectedPrimaryId.value = null;
+        primaryQuantity.value = "";
         for (const k of Object.keys(errors)) delete errors[k];
         for (const id of Object.keys(quantities)) quantities[id] = "";
         isSubmitting.value = false;
@@ -367,51 +396,24 @@ watch(
                                     </ul>
                                 </div>
 
-                                <!-- Item quantities -->
-                                <fieldset>
-                                    <legend
-                                        class="text-sm font-medium text-[#1a1a2e] mb-2"
-                                    >
-                                        {{ config.primaryCategoryName }} —
-                                        Quantities
-                                    </legend>
-
-                                    <p
-                                        v-if="primaryItems.length === 0"
-                                        class="text-sm text-[#717182] italic"
-                                    >
-                                        No items configured. Add some in the
-                                        items settings.
-                                    </p>
-
-                                    <div v-else class="flex flex-col gap-2">
-                                        <div
-                                            v-for="pi in primaryItems"
-                                            :key="pi.id"
-                                            class="flex items-center gap-3 bg-[#f8f8fa] border border-[rgba(0,0,0,0.08)] rounded-lg px-3 py-2.5"
-                                        >
-                                            <label
-                                                :for="`qty-${pi.id}`"
-                                                class="flex-1 text-sm text-[#1a1a2e]"
-                                            >
-                                                {{ pi.label }}
-                                            </label>
-
-                                            <input
-                                                :id="`qty-${pi.id}`"
-                                                v-model="quantities[pi.id]"
-                                                type="number"
-                                                min="0"
-                                                step="1"
-                                                inputmode="numeric"
-                                                placeholder="0"
-                                                class="w-20 px-2 py-1.5 text-center rounded-md border bg-white text-[#1a1a2e] focus:outline-none focus-visible:ring-2 transition-colors border-[rgba(0,0,0,0.15)]"
-                                                :class="focusRing"
-                                                @input="errors.quantities = ''"
-                                            />
-                                        </div>
-                                    </div>
-                                </fieldset>
+                                <!-- Primary item dropdown + quantity -->
+                                <LogPrimaryPicker
+                                    :primary-items="primaryItems"
+                                    :selected-id="selectedPrimaryId"
+                                    :quantity="primaryQuantity"
+                                    :primary-category-name="
+                                        config.primaryCategoryName
+                                    "
+                                    :error="errors.quantities"
+                                    :focus-ring="focusRing"
+                                    @update:selected-id="
+                                        (id) => (selectedPrimaryId = id)
+                                    "
+                                    @update:quantity="
+                                        (v) => (primaryQuantity = v)
+                                    "
+                                    @clear-error="errors.quantities = ''"
+                                />
 
                                 <!-- Content tags -->
                                 <fieldset v-if="contentItems.length > 0">
