@@ -4,4 +4,13 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ["@nuxt/ui"],
   css: ["~/assets/css/main.css"],
+
+  nitro: {
+    routeRules: {
+      // Forward all /api/** requests to FastAPI on port 8000
+      "/api/**": {
+        proxy: "http://localhost:8000/api/**",
+      },
+    },
+  },
 });

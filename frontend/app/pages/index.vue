@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, ref } from "vue";
+import { computed, inject, onMounted, ref } from "vue";
 import { useApp } from "~/composables/useApp";
 import TodaySection from "~/components/dashboard/TodaySection.vue";
 import BalancesSection from "~/components/dashboard/BalancesSection.vue";
@@ -13,13 +13,17 @@ const SORT_LABELS: Record<SortKey, string> = {
     "name-desc": "Z → A",
 };
 
-const { config, clientBalances, grandTotal } = useApp();
+const { config, clientBalances, grandTotal, loadSummary } = useApp();
 
 const onOpenModal =
     inject<(direction: "OUT" | "IN") => void>("onOpenModal") ?? (() => {});
 
 const filterQuery = ref("");
 const sortKey = ref<SortKey>("total-desc");
+
+onMounted(() => {
+    loadSummary();
+});
 
 const processedClients = computed(() => {
     const clients = clientBalances.value;

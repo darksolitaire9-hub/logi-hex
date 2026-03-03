@@ -1,5 +1,6 @@
 // app/composables/useApp.ts
 import { ref } from "vue";
+import {fetchSummary} from "../../lib/api/logiHex"
 
 export type Direction = "OUT" | "IN";
 
@@ -18,18 +19,22 @@ const config = ref({
   isSetupComplete: false,
 });
 
-const clientBalances = ref<ClientBalance[]>([
-  {
-    clientName: "Demo Client",
-    total: 5,
-    items: [
-      { itemId: 1, label: "Large Box", quantity: 3 },
-      { itemId: 2, label: "Small Box", quantity: 2 },
-    ],
-  },
-]);
+const clientBalances = ref<ClientBalance[]>([]);
+const grandTotal = ref(0);
 
-const grandTotal = ref(5);
+async function loadSummary() {
+  const data = await fetchSummary();
+  clientBalances.value = data.clients.map((c) => ({
+    clientName: c.client_name,
+    total: c.total_outstanding,
+    items: c.balances.map((b) => ({
+      itemId: b.container_type_id,
+      label: b.container_label,
+      quantity: b.balance,
+    })),
+  }));
+  grandTotal.value = data.grand_total;
+}
 
 const primaryItems = ref<PrimaryItem[]>([
   { id: "1", label: "Large Box" },
@@ -74,7 +79,6 @@ function logMovement(payload: {
 }
 
 export function useApp() {
-  // never undefined now
   return {
     config,
     clientBalances,
@@ -88,5 +92,6 @@ export function useApp() {
     addContentItem,
     removeContentItem,
     logMovement,
+    loadSummary,
   };
 }

@@ -1,30 +1,22 @@
-from pathlib import Path
+# adapters/api/routes.py
 
-from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
-
-# seeding below
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.facades import LogiFacade
 from composition.container import get_facade
-from domain.entities import Balance, ContainerType, TrackingCategory, TrackingItem
+from domain.entities import Balance, ContainerType
 from infrastructure.sqlite_repo import (
     SqlAlchemyContainerTypeRepository,
-    SqlAlchemyTrackingCategoryRepository,
-    SqlAlchemyTrackingItemRepository,
     SqlAlchemyTransactionRepository,
     get_session,
 )
 
-# seeding above
-
-BASE_DIR = Path(__file__).parent.parent / "ui"
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-
 router = APIRouter(prefix="/api")
+
+
+# ---------- Request models ----------
 
 
 class IssueRequest(BaseModel):
@@ -39,6 +31,9 @@ class ReceiveRequest(BaseModel):
     quantity: int = Field(..., gt=0)
 
 
+# ---------- Core JSON API endpoints ----------
+
+
 @router.post("/issue")
 async def issue_containers(
     body: IssueRequest,
@@ -47,7 +42,6 @@ async def issue_containers(
     """
     Issue containers to a client (OUT).
     """
-    # (Optional) could check container type exists via facade.container_type_repo
     tx = await facade.issue(
         name=body.name,
         container_type_id=body.container_type_id,
@@ -126,7 +120,7 @@ async def get_summary(
     }
 
 
-# temp helper below
+# ---------- Optional helpers (JSON only) ----------
 
 
 @router.post("/seed-container-types")
@@ -156,6 +150,9 @@ async def seed_container_types(
 async def debug_transactions(
     session: AsyncSession = Depends(get_session),
 ):
+    """
+    Debug helper: list all raw transactions.
+    """
     repo = SqlAlchemyTransactionRepository(session)
     txs = await repo.list_all()
     return [
@@ -169,117 +166,3 @@ async def debug_transactions(
         }
         for tx in txs
     ]
-
-
-# temp above
-
-
-@router.post("/setup/primary-category", response_class=HTMLResponse)
-async def create_primary_category(
-    primary_name: str = Form(...),
-    session: AsyncSession = Depends(get_session),
-):
-    primary_name = primary_name.strip()
-    if not primary_name:
-        return HTMLResponse(
-            '<p class="error-msg">Name is required.</p>', status_code=400
-        )
-
-    cat_id = primary_name.lower().replace(" ", "-")
-
-    category = TrackingCategory(
-        id=cat_id,
-        name=primary_name,
-        is_balanced=True,
-    )
-
-    repo = SqlAlchemyTrackingCategoryRepository(session)
-    await repo.save(category)
-    await session.commit()
-
-    html = f"""
-    <p>Primary category <strong>{category.name}</strong> created.</p>
-    <p>
-      <a href="/ui">Go to dashboard →</a>
-    </p>
-    """
-    return HTMLResponse(content=html)
-
-
-@router.post("/setup/secondary-category", response_class=HTMLResponse)
-async def create_secondary_category(
-    secondary_name: str = Form(...),
-    session: AsyncSession = Depends(get_session),
-):
-    secondary_name = secondary_name.strip()
-    if not secondary_name:
-        return HTMLResponse(
-            '<p class="error-msg">Name is required.</p>', status_code=400
-        )
-
-    cat_id = secondary_name.lower().replace(" ", "-")
-
-    category = TrackingCategory(
-        id=cat_id,
-        name=secondary_name,
-        is_balanced=False,
-    )
-
-    repo = SqlAlchemyTrackingCategoryRepository(session)
-    await repo.save(category)
-    await session.commit()
-
-    html = f"""
-    <p>Secondary category <strong>{category.name}</strong> created.</p>
-    """
-    return HTMLResponse(content=html)
-
-
-# ─── Tracking items management (primary & secondary) ──────────────────────────
-
-
-@router.post("/items/add", response_class=HTMLResponse)
-async def add_item(
-    request: Request,
-    category_id: str = Form(...),
-    label: str = Form(...),
-    session: AsyncSession = Depends(get_session),
-):
-    label = label.strip()
-    if not label:
-        return HTMLResponse(
-            '<p class="error-msg">Item name is required.</p>',
-            status_code=400,
-        )
-
-    item_id = label.lower().replace(" ", "-")
-    repo = SqlAlchemyTrackingItemRepository(session)
-    item = TrackingItem(id=item_id, category_id=category_id, label=label)
-    await repo.save(item)
-    await session.commit()
-
-    # Re-fetch and return the updated table partial
-    items = await repo.list_all_by_category(category_id)
-    return templates.TemplateResponse(
-        "partials/items_table.html",
-        {"request": request, "items": items, "category_id": category_id},
-    )
-
-
-@router.post("/items/delete", response_class=HTMLResponse)
-async def delete_item(
-    request: Request,
-    item_id: str = Form(...),
-    category_id: str = Form(...),
-    session: AsyncSession = Depends(get_session),
-):
-    repo = SqlAlchemyTrackingItemRepository(session)
-    await repo.delete(item_id)
-    await session.commit()
-
-    # Re-fetch and return the updated table partial
-    items = await repo.list_all_by_category(category_id)
-    return templates.TemplateResponse(
-        "partials/items_table.html",
-        {"request": request, "items": items, "category_id": category_id},
-    )
