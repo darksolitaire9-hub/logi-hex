@@ -1,6 +1,6 @@
 // app/composables/useApp.ts
 import { ref } from "vue";
-import {fetchSummary} from "../../lib/api/logiHex"
+import { fetchSummary } from "../../lib/api/logiHex";
 
 export type Direction = "OUT" | "IN";
 
@@ -13,12 +13,44 @@ type ClientBalance = {
   items: ClientItem[];
 };
 
-const config = ref({
-  primaryCategoryName: "Primary containers",
-  contentCategoryName: "Content tags",
-  isSetupComplete: false,
-});
+// --- CONFIG (persisted) ---
+const CONFIG_KEY = "logi-hex-config";
 
+function loadStoredConfig() {
+  if (!import.meta.client) {
+    return {
+      primaryCategoryName: "Primary containers",
+      contentCategoryName: "Content tags",
+      isSetupComplete: false,
+    };
+  }
+
+  const stored = localStorage.getItem(CONFIG_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      // corrupted storage → fall through to default
+    }
+  }
+
+  return {
+    primaryCategoryName: "Primary containers",
+    contentCategoryName: "Content tags",
+    isSetupComplete: false,
+  };
+}
+
+const config = ref(loadStoredConfig());
+
+function updateConfig(newConfig: Partial<typeof config.value>) {
+  config.value = { ...config.value, ...newConfig };
+  if (import.meta.client) {
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config.value));
+  }
+}
+
+// --- SUMMARY ---
 const clientBalances = ref<ClientBalance[]>([]);
 const grandTotal = ref(0);
 
@@ -36,6 +68,7 @@ async function loadSummary() {
   grandTotal.value = data.grand_total;
 }
 
+// --- ITEMS (stubs for now) ---
 const primaryItems = ref<PrimaryItem[]>([
   { id: "1", label: "Large Box" },
   { id: "2", label: "Small Box" },
@@ -47,10 +80,6 @@ const contentItems = ref<ContentItem[]>([
 ]);
 
 const allClientNames = ref<string[]>(["Demo Client"]);
-
-function updateConfig(newConfig: Partial<typeof config.value>) {
-  config.value = { ...config.value, ...newConfig };
-}
 
 function addPrimaryItem(label: string) {
   primaryItems.value.push({ id: crypto.randomUUID(), label });
