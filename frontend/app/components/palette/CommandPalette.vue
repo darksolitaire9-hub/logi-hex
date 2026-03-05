@@ -125,10 +125,10 @@ const allItems = computed<ResultItem[]>(() => {
     items.push({
         id: "page-setup",
         group: "Pages",
-        label: "Setup",
+        label: "Settings",
         sublabel: "Configure category names",
         icon: Settings2,
-        action: () => run(() => router.push("/setup")),
+        action: () => run(() => router.push("/settings")),
     });
 
     for (const client of clients) {
