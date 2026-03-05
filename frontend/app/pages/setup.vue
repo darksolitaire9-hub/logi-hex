@@ -1,11 +1,8 @@
+<!-- pages/setup.vue -->
 <script setup lang="ts">
-import SetupForm from "~/components/setup/SetupForm.vue";
-
-definePageMeta({
-    layout: "setup",
-});
+import SetupWizard from "~/components/setup/SetupWizard.vue";
+definePageMeta({ layout: "setup" });
 </script>
-
 <template>
-    <SetupForm />
+    <SetupWizard />
 </template>

@@ -1,11 +1,8 @@
+<!-- pages/settings.vue -->
 <script setup lang="ts">
-import SetupForm from "~/components/setup/SetupForm.vue";
-
-definePageMeta({
-    layout: "default",
-});
+import SettingsForm from "~/components/setup/SettingsForm.vue";
+definePageMeta({ layout: "default" });
 </script>
-
 <template>
-    <SetupForm :edit-mode="true" />
+    <SettingsForm />
 </template>

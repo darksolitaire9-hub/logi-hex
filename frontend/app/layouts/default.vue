@@ -5,9 +5,9 @@ import { Package, Settings2, Layers, Search, Tags } from "lucide-vue-next";
 import { Motion, AnimatePresence } from "motion-v";
 import { useApp } from "~/composables/useApp";
 
-import CommandPalette from "~/components/CommandPalette.vue";
-import LogModal from "~/components/LogModal.vue";
-import SuccessBanner from "~/components/SuccessBanner.vue";
+import CommandPalette from "~/components/palette/CommandPalette.vue";
+import LogModal from "~/components/log/LogModal.vue";
+import SuccessBanner from "~/components/common/SuccessBanner.vue";
 
 const route = useRoute();
 const { config } = useApp();

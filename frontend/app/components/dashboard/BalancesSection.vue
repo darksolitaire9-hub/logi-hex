@@ -8,7 +8,7 @@ import {
     ArrowDownUp,
     ChevronDown,
 } from "lucide-vue-next";
-import VirtualClientList from "~/components/VirtualClientList.vue";
+import VirtualClientList from "~/components/dashboard/VirtualClientList.vue";
 import { AnimatePresence, Motion } from "motion-v";
 
 type SortKey = "total-desc" | "total-asc" | "name-asc" | "name-desc";

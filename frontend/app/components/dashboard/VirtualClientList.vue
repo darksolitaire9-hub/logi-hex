@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
-import ClientCard from "~/components/ClientCard.vue";
+import ClientCard from "~/components/dashboard/ClientCard.vue";
 
 type ClientBalance = {
     clientName: string;
