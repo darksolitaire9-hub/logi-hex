@@ -46,7 +46,7 @@ function handleFinish(e: Event) {
 
     saved.value = true;
     setTimeout(() => {
-        router.push("/");
+        router.push("/primary");
     }, 1200);
 }
 </script>
