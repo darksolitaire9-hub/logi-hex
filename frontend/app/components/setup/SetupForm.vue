@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { ArrowRight, CheckCircle, Package, Tag } from "lucide-vue-next";
 import { useApp } from "~/composables/useApp";
 
 const router = useRouter();
 const { config, updateConfig } = useApp();
+
+const props = defineProps<{ editMode?: boolean }>();
+const isEditing = computed(() => props.editMode ?? false);
 
 // Local state
 const step = ref(1);
@@ -14,7 +17,7 @@ const contentName = ref(config.value.contentCategoryName || "Contents");
 const primaryError = ref("");
 const saved = ref(false);
 
-// Step 1 handler
+// Step 1 handler (setup mode only)
 function handleStep1(e: Event) {
     e.preventDefault();
     const trimmed = primaryName.value.trim();
@@ -28,21 +31,28 @@ function handleStep1(e: Event) {
     step.value = 2;
 }
 
-// Finish handler
 function handleFinish(e: Event) {
     e.preventDefault();
 
+    const trimmedPrimary = primaryName.value.trim();
+    if (!trimmedPrimary) {
+        primaryError.value = "Please enter a name for your primary category.";
+        return;
+    }
+
     updateConfig({
-        primaryCategoryName: primaryName.value.trim() || "Box Types",
+        primaryCategoryName: trimmedPrimary || "Box Types",
         contentCategoryName: contentName.value.trim() || "Contents",
         isSetupComplete: true,
     });
 
     saved.value = true;
 
-    setTimeout(() => {
-        router.push("/");
-    }, 1200);
+    if (!isEditing.value) {
+        setTimeout(() => {
+            router.push("/");
+        }, 1200);
+    }
 }
 </script>
 
@@ -55,15 +65,21 @@ function handleFinish(e: Event) {
             >
                 <span class="text-white text-xl font-bold">LH</span>
             </div>
-            <h1 class="text-[#1a1a2e] mb-1">Set up logi-hex</h1>
+            <h1 class="text-[#1a1a2e] mb-1">
+                {{ isEditing ? "Settings" : "Set up logi-hex" }}
+            </h1>
             <p class="text-sm text-[#717182]">
-                A quick 2-step setup to get you started. You can change these
-                any time.
+                {{
+                    isEditing
+                        ? "Update your category names below."
+                        : "A quick 2-step setup to get you started. You can change these any time."
+                }}
             </p>
         </div>
 
-        <!-- Progress -->
+        <!-- Progress (setup mode only) -->
         <div
+            v-if="!isEditing"
             class="flex items-center gap-2 mb-8"
             :aria-label="`Step ${step} of 2`"
         >
@@ -100,9 +116,108 @@ function handleFinish(e: Event) {
             </div>
         </div>
 
-        <!-- Step 1 -->
+        <!-- ===================== -->
+        <!-- EDIT MODE — single form -->
+        <!-- ===================== -->
         <div
-            v-if="step === 1"
+            v-if="isEditing && !saved"
+            class="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+        >
+            <form @submit="handleFinish" novalidate>
+                <!-- Primary category -->
+                <div class="flex items-center gap-2 mb-1">
+                    <Package class="w-5 h-5 text-[#717182]" />
+                    <h2 class="text-[#1a1a2e]">Primary category</h2>
+                </div>
+                <p class="text-sm text-[#717182] mb-4">
+                    The main category of containers you track. For example:
+                    <em>"Box Types"</em>, <em>"Crates"</em>, or
+                    <em>"Containers"</em>.
+                </p>
+                <div class="mb-6">
+                    <label
+                        for="primary-category"
+                        class="block text-sm font-medium text-[#1a1a2e] mb-1.5"
+                    >
+                        Primary category name
+                        <span class="text-[#ea580c]">*</span>
+                    </label>
+                    <input
+                        id="primary-category"
+                        type="text"
+                        v-model="primaryName"
+                        placeholder="e.g. Box Types"
+                        :aria-invalid="!!primaryError"
+                        :aria-describedby="
+                            primaryError ? 'primary-error' : undefined
+                        "
+                        class="w-full px-3 py-2.5 rounded-lg border bg-white text-[#1a1a2e] placeholder:text-[#a0a0b0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1a2e] transition-colors"
+                        :class="
+                            primaryError
+                                ? 'border-[#d4183d]'
+                                : 'border-[rgba(0,0,0,0.15)]'
+                        "
+                        autofocus
+                    />
+                    <p
+                        v-if="primaryError"
+                        id="primary-error"
+                        class="mt-1.5 text-xs text-[#d4183d]"
+                    >
+                        {{ primaryError }}
+                    </p>
+                </div>
+
+                <!-- Divider -->
+                <div class="border-t border-[rgba(0,0,0,0.06)] mb-6" />
+
+                <!-- Content category -->
+                <div class="flex items-center gap-2 mb-1">
+                    <Tag class="w-5 h-5 text-[#717182]" />
+                    <h2 class="text-[#1a1a2e]">Content category</h2>
+                </div>
+                <p class="text-sm text-[#717182] mb-4">
+                    Optional tag for movements. For example:
+                    <em>"Contents"</em>, <em>"Dish Name"</em>, or
+                    <em>"Product"</em>.
+                </p>
+                <div class="mb-6">
+                    <label
+                        for="content-category"
+                        class="block text-sm font-medium text-[#1a1a2e] mb-1.5"
+                    >
+                        Content category name
+                        <span class="text-[#717182] font-normal"
+                            >(optional)</span
+                        >
+                    </label>
+                    <input
+                        id="content-category"
+                        type="text"
+                        v-model="contentName"
+                        placeholder="e.g. Contents"
+                        class="w-full px-3 py-2.5 rounded-lg border border-[rgba(0,0,0,0.15)] bg-white text-[#1a1a2e] placeholder:text-[#a0a0b0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1a2e] transition-colors"
+                    />
+                    <p class="mt-1.5 text-xs text-[#717182]">
+                        Leave empty to disable content tagging entirely.
+                    </p>
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#16a34a] hover:bg-[#15803d] text-white text-sm font-medium transition-colors"
+                >
+                    <CheckCircle class="w-4 h-4" />
+                    Save changes
+                </button>
+            </form>
+        </div>
+
+        <!-- ===================== -->
+        <!-- SETUP MODE — step 1  -->
+        <!-- ===================== -->
+        <div
+            v-if="!isEditing && step === 1"
             class="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
         >
             <div class="flex items-center gap-2 mb-1">
@@ -163,9 +278,9 @@ function handleFinish(e: Event) {
             </form>
         </div>
 
-        <!-- Step 2 -->
+        <!-- SETUP MODE — step 2 -->
         <div
-            v-if="step === 2 && !saved"
+            v-if="!isEditing && step === 2 && !saved"
             class="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
         >
             <div class="flex items-center gap-2 mb-1">
@@ -236,9 +351,15 @@ function handleFinish(e: Event) {
                 <CheckCircle class="w-6 h-6 text-white" />
             </div>
 
-            <h2 class="text-[#166534] mb-1">Setup complete!</h2>
+            <h2 class="text-[#166534] mb-1">
+                {{ isEditing ? "Settings saved!" : "Setup complete!" }}
+            </h2>
             <p class="text-sm text-[#15803d]">
-                Redirecting you to the dashboard…
+                {{
+                    isEditing
+                        ? "Your changes have been applied."
+                        : "Redirecting you to the dashboard…"
+                }}
             </p>
         </div>
 

@@ -163,16 +163,16 @@ const isActive = (to: string) => {
 
                 <!-- Setup -->
                 <NuxtLink
-                    to="/setup"
+                    to="/settings"
                     :class="[
                         'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1a2e] shrink-0',
-                        route.path === '/setup'
+                        route.path === '/settings'
                             ? 'bg-[#1a1a2e] text-white'
                             : 'text-[#717182] hover:text-[#1a1a2e] hover:bg-[#f0f0f4]',
                     ]"
                 >
                     <Settings2 class="w-4 h-4" />
-                    <span class="hidden md:block">Setup</span>
+                    <span class="hidden md:block">Settings</span>
                 </NuxtLink>
             </div>
         </header>
