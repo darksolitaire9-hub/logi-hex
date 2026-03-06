@@ -78,8 +78,9 @@ tracking_categories_table = sa.Table(
     metadata,
     sa.Column("id", sa.String, primary_key=True),
     sa.Column("name", sa.String, nullable=False),
-    sa.Column("is_balanced", sa.Boolean, nullable=False, default=True),
+    sa.Column("enforce_returns", sa.Boolean, nullable=False, default=True),
 )
+
 
 tracking_items_table = sa.Table(
     "tracking_items",
@@ -240,7 +241,7 @@ class SqlAlchemyTrackingCategoryRepository(TrackingCategoryRepositoryPort):
             TrackingCategory(
                 id=row.id,
                 name=row.name,
-                is_balanced=row.is_balanced,
+                enforce_returns=row.enforce_returns,
             )
             for row in rows
         ]
@@ -257,7 +258,7 @@ class SqlAlchemyTrackingCategoryRepository(TrackingCategoryRepositoryPort):
         return TrackingCategory(
             id=row.id,
             name=row.name,
-            is_balanced=row.is_balanced,
+            enforce_returns=row.enforce_returns,
         )
 
     async def save(self, category: TrackingCategory) -> None:
@@ -267,7 +268,7 @@ class SqlAlchemyTrackingCategoryRepository(TrackingCategoryRepositoryPort):
                 tracking_categories_table.insert().values(
                     id=category.id,
                     name=category.name,
-                    is_balanced=category.is_balanced,
+                    enforce_returns=category.enforce_returns,
                 )
             )
         else:
@@ -276,7 +277,7 @@ class SqlAlchemyTrackingCategoryRepository(TrackingCategoryRepositoryPort):
                 .where(tracking_categories_table.c.id == category.id)
                 .values(
                     name=category.name,
-                    is_balanced=category.is_balanced,
+                    enforce_returns=category.enforce_returns,
                 )
             )
 

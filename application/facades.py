@@ -1,5 +1,12 @@
 from domain import services
-from domain.entities import Balance, ContainerType, SummaryResult, Transaction
+from domain.entities import (
+    Balance,
+    ContainerType,
+    SummaryResult,
+    TrackingCategory,
+    TrackingItem,
+    Transaction,
+)
 from domain.ports import (
     BalanceQueryPort,
     ClientRepositoryPort,
@@ -143,6 +150,44 @@ class LogiFacade:
             await self.container_type_repo.save(ct)
             await self.uow.commit()
             return ct
+        except Exception:
+            await self.uow.rollback()
+            raise
+
+    async def create_tracking_category(
+        self,
+        category_id: str,
+        name: str,
+        enforce_returns: bool,
+    ) -> TrackingCategory:
+        try:
+            category = TrackingCategory(
+                id=category_id,
+                name=name,
+                enforce_returns=enforce_returns,
+            )
+            await self.tracking_category_repo.save(category)
+            await self.uow.commit()
+            return category
+        except Exception:
+            await self.uow.rollback()
+            raise
+
+    async def create_tracking_item(
+        self,
+        item_id: str,
+        label: str,
+        category_id: str,
+    ) -> TrackingItem:
+        try:
+            item = TrackingItem(
+                id=item_id,
+                category_id=category_id,
+                label=label,
+            )
+            await self.tracking_item_repo.save(item)
+            await self.uow.commit()
+            return item
         except Exception:
             await self.uow.rollback()
             raise

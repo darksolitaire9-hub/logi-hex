@@ -120,7 +120,7 @@ async def issue_items(
     """
     # 1. ensure primary category exists and is balanced
     category = await tracking_category_repo.get_by_id(primary_category_id)
-    if category is None or not category.is_balanced:
+    if category is None or not category.enforce_returns:
         # domain-level safety: you should not use a non-balanced category as primary
         raise UnknownContainerTypeError(
             f"Invalid primary category '{primary_category_id}' for issuing items."
@@ -185,7 +185,7 @@ async def return_items(
     """
     # 1. ensure primary category exists and is balanced
     category = await tracking_category_repo.get_by_id(primary_category_id)
-    if category is None or not category.is_balanced:
+    if category is None or not category.enforce_returns:
         raise UnknownContainerTypeError(
             f"Invalid primary category '{primary_category_id}' for returning items."
         )

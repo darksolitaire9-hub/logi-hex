@@ -10,6 +10,18 @@ from domain.entities import Balance
 router = APIRouter(prefix="/api")
 
 
+class CreateTrackingCategoryRequest(BaseModel):
+    id: str
+    name: str
+    enforce_returns: bool = True
+
+
+class CreateTrackingItemRequest(BaseModel):
+    id: str
+    label: str
+    category_id: str
+
+
 # contianer types
 class CreateContainerTypeRequest(BaseModel):
     id: str = Field(..., description="Container type ID, e.g. 'white'")
@@ -59,7 +71,7 @@ class LogContainerMovementRequest(BaseModel):
     name: str = Field(..., description="Client name")
     container_type_id: str
     quantity: int = Field(..., gt=0)
-    content_type_ids: list[str] = []  
+    content_type_ids: list[str] = []
     note: str | None = None
 
 
@@ -101,6 +113,100 @@ async def receive_containers(
         "container_type_id": tx.container_type_id,
         "direction": tx.direction,
         "quantity": tx.quantity,
+    }
+
+
+@router.post("/movements/issue", status_code=201)
+async def issue_with_content(
+    body: LogContainerMovementRequest,
+    facade: LogiFacade = Depends(get_facade),
+):
+    tx = await facade.issue_items(
+        name=body.name,
+        primary_item_quantities={body.container_type_id: body.quantity},
+        secondary_item_ids=body.content_type_ids,
+        notes=body.note,
+        primary_category_id="containers",  # later: derive from config
+    )
+    return {
+        "transaction_id": tx.id,
+        "client_id": tx.client_id,
+        "client_name": tx.client_name,
+        "direction": tx.direction,
+        "notes": tx.notes,
+        "primary_items": [
+            {
+                "tracking_item_id": li.tracking_item_id,
+                "label": li.label,
+                "quantity": li.quantity,
+            }
+            for li in tx.line_items
+        ],
+        "secondary_items": tx.secondary_items,
+    }
+
+
+@router.post("/movements/receive", status_code=201)
+async def receive_with_content(
+    body: LogContainerMovementRequest,
+    facade: LogiFacade = Depends(get_facade),
+):
+    tx = await facade.return_items(
+        name=body.name,
+        primary_item_quantities={body.container_type_id: body.quantity},
+        secondary_item_ids=body.content_type_ids,
+        notes=body.note,
+        primary_category_id="containers",
+    )
+    return {
+        "transaction_id": tx.id,
+        "client_id": tx.client_id,
+        "client_name": tx.client_name,
+        "direction": tx.direction,
+        "notes": tx.notes,
+        "primary_items": [
+            {
+                "tracking_item_id": li.tracking_item_id,
+                "label": li.label,
+                "quantity": li.quantity,
+            }
+            for li in tx.line_items
+        ],
+        "secondary_items": tx.secondary_items,
+    }
+
+
+@router.post("/tracking-categories", status_code=201)
+async def create_tracking_category(
+    body: CreateTrackingCategoryRequest,
+    facade: LogiFacade = Depends(get_facade),
+):
+    category = await facade.create_tracking_category(
+        category_id=body.id,
+        name=body.name,
+        enforce_returns=body.enforce_returns,
+    )
+    return {
+        "id": category.id,
+        "name": category.name,
+        "enforce_returns": category.enforce_returns,
+    }
+
+
+@router.post("/tracking-items", status_code=201)
+async def create_tracking_item(
+    body: CreateTrackingItemRequest,
+    facade: LogiFacade = Depends(get_facade),
+):
+    item = await facade.create_tracking_item(
+        item_id=body.id,
+        label=body.label,
+        category_id=body.category_id,
+    )
+    return {
+        "id": item.id,
+        "label": item.label,
+        "category_id": item.category_id,
     }
 
 

@@ -40,7 +40,7 @@ class TrackingCategory:
 
     id: str
     name: str
-    is_balanced: bool
+    enforce_returns: bool
 
 
 @dataclass
@@ -78,10 +78,10 @@ class ContainerTransaction:
     client_id: str
     client_name: str
     container_type_id: str
-    direction: Literal["OUT", "IN"]  # OUT = issued, IN = returned
+    direction: Literal["OUT", "IN"]
     quantity: int
-    content_type_ids: list[str]  # list of ContentType IDs attached to this movement
-    note: str | None = None  # optional free-text note
+    content_type_ids: list[str] = field(default_factory=list)
+    note: str | None = None
 
     @classmethod
     def issue(
