@@ -1,5 +1,5 @@
 from domain import services
-from domain.entities import Balance, SummaryResult, Transaction
+from domain.entities import Balance, ContainerType, SummaryResult, Transaction
 from domain.ports import (
     BalanceQueryPort,
     ClientRepositoryPort,
@@ -133,3 +133,16 @@ class LogiFacade:
 
     async def summary(self) -> SummaryResult:
         return await self.summary_query.get_summary()
+
+    async def list_container_types(self) -> list[ContainerType]:
+        return await self.container_type_repo.list_all()
+
+    async def create_container_type(self, type_id: str, label: str) -> ContainerType:
+        try:
+            ct = ContainerType(id=type_id, label=label)
+            await self.container_type_repo.save(ct)
+            await self.uow.commit()
+            return ct
+        except Exception:
+            await self.uow.rollback()
+            raise

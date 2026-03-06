@@ -1,10 +1,16 @@
 // app/composables/useApp.ts
 import { ref } from "vue";
-import { fetchSummary } from "../../lib/api/logiHex";
+import {
+  fetchSummary,
+  fetchContainerTypes,
+  createContainerType,
+  logMovementApi,
+} from "../../lib/api/logiHex";
+
+import type { ContainerType, LogMovementPayload } from "../../lib/api/types";
 
 export type Direction = "OUT" | "IN";
 
-type PrimaryItem = { id: string; label: string };
 type ContentItem = { id: string; label: string };
 type ClientItem = { itemId: string | number; label: string; quantity: number };
 type ClientBalance = {
@@ -12,6 +18,28 @@ type ClientBalance = {
   total: number;
   items: ClientItem[];
 };
+
+const contentItems = ref<ContentItem[]>([]);
+
+// --- CONTAINER TYPES (backend-backed) ---
+const containerTypes = ref<ContainerType[]>([]);
+let containerTypesFetched = false;
+
+async function loadContainerTypes() {
+  if (containerTypesFetched) return;
+  containerTypes.value = await fetchContainerTypes();
+  containerTypesFetched = true;
+}
+
+async function addContainerType(label: string) {
+  const trimmed = label.trim();
+  if (!trimmed) return;
+
+  // Simple ID derivation for now;  refine later
+  const id = trimmed.toLowerCase().replace(/\s+/g, "-");
+  const ct = await createContainerType({ id, label: trimmed });
+  containerTypes.value.push(ct);
+}
 
 // --- CONFIG (persisted) ---
 const CONFIG_KEY = "logi-hex-config";
@@ -68,43 +96,9 @@ async function loadSummary() {
   grandTotal.value = data.grand_total;
 }
 
-// --- ITEMS (stubs for now) ---
-const primaryItems = ref<PrimaryItem[]>([
-  { id: "1", label: "Large Box" },
-  { id: "2", label: "Small Box" },
-]);
-
-const contentItems = ref<ContentItem[]>([
-  { id: "c1", label: "Frozen" },
-  { id: "c2", label: "Fresh" },
-]);
-
-const allClientNames = ref<string[]>(["Demo Client"]);
-
-function addPrimaryItem(label: string) {
-  primaryItems.value.push({ id: crypto.randomUUID(), label });
-}
-
-function removePrimaryItem(id: string) {
-  primaryItems.value = primaryItems.value.filter((i) => i.id !== id);
-}
-
-function addContentItem(label: string) {
-  contentItems.value.push({ id: crypto.randomUUID(), label });
-}
-
-function removeContentItem(id: string) {
-  contentItems.value = contentItems.value.filter((i) => i.id !== id);
-}
-
-function logMovement(payload: {
-  direction: Direction;
-  clientName: string;
-  items: { itemId: string | number; quantity: number }[];
-  contentTags: string[];
-  note: string;
-}) {
-  console.log("Movement logged (stub):", payload);
+async function logMovement(payload: LogMovementPayload) {
+  await logMovementApi(payload);
+  await loadSummary();
 }
 
 export function useApp() {
@@ -113,13 +107,13 @@ export function useApp() {
     clientBalances,
     grandTotal,
     updateConfig,
-    primaryItems,
+
+    // container types
+    containerTypes,
+    loadContainerTypes,
+    addContainerType,
     contentItems,
-    allClientNames,
-    addPrimaryItem,
-    removePrimaryItem,
-    addContentItem,
-    removeContentItem,
+    // movements + summary
     logMovement,
     loadSummary,
   };

@@ -5,9 +5,39 @@ from pydantic import BaseModel, Field
 
 from application.facades import LogiFacade
 from composition.container import get_facade
-from domain.entities import Balance, ContainerType
+from domain.entities import Balance
 
 router = APIRouter(prefix="/api")
+
+
+# contianer types
+class CreateContainerTypeRequest(BaseModel):
+    id: str = Field(..., description="Container type ID, e.g. 'white'")
+    label: str = Field(..., description="Human label, e.g. 'White Box'")
+
+
+@router.get("/container-types")
+async def get_container_types(facade: LogiFacade = Depends(get_facade)):
+    types = await facade.list_container_types()
+    return [
+        {
+            "id": ct.id,
+            "label": ct.label,
+        }
+        for ct in types
+    ]
+
+
+@router.post("/container-types", status_code=201)
+async def create_container_type(
+    body: CreateContainerTypeRequest,
+    facade: LogiFacade = Depends(get_facade),
+):
+    ct = await facade.create_container_type(type_id=body.id, label=body.label)
+    return {
+        "id": ct.id,
+        "label": ct.label,
+    }
 
 
 # ---------- Request models ----------
@@ -23,6 +53,14 @@ class ReceiveRequest(BaseModel):
     name: str
     container_type_id: str
     quantity: int = Field(..., gt=0)
+
+
+class LogContainerMovementRequest(BaseModel):
+    name: str = Field(..., description="Client name")
+    container_type_id: str
+    quantity: int = Field(..., gt=0)
+    content_type_ids: list[str] = []  
+    note: str | None = None
 
 
 # ---------- Core JSON API endpoints ----------

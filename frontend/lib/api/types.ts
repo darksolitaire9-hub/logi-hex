@@ -2,6 +2,16 @@
 
 export type Direction = "OUT" | "IN";
 
+export interface ContainerType {
+  id: string;
+  label: string;
+}
+
+export interface CreateContainerTypePayload {
+  id: string;
+  label: string;
+}
+
 export interface SummaryBalance {
   container_label: string;
   container_type_id: string;

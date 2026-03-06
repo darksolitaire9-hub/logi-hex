@@ -24,8 +24,24 @@ const emit = defineEmits<{
     (e: "success", clientName: string, direction: Direction): void;
 }>();
 
-const { primaryItems, contentItems, allClientNames, logMovement, config } =
-    useApp();
+const {
+    containerTypes,
+    loadContainerTypes,
+    logMovement,
+    config,
+    // keep these if you still want suggestions and content tags
+    // comment out if you want to drop them for now
+    contentItems,
+    // allClientNames,
+} = useApp();
+
+// Derive primary items from containerTypes for LogPrimaryPicker
+const primaryItems = computed(() =>
+    containerTypes.value.map((ct) => ({
+        id: ct.id,
+        label: ct.label,
+    })),
+);
 
 const dialogRef = ref<HTMLDivElement | null>(null);
 const clientInputRef = ref<HTMLInputElement | null>(null);
@@ -90,11 +106,15 @@ const focusRing = computed(() =>
         : "focus-visible:ring-[#16a34a]",
 );
 
+// If you still have allClientNames in useApp, uncomment and keep this.
+// Otherwise, you can remove suggestions entirely for now.
 const filteredSuggestions = computed(() => {
     const q = clientName.value.toLowerCase();
-    return allClientNames.value.filter(
-        (n) => n.toLowerCase().includes(q) && n !== clientName.value,
-    );
+    // if (!allClientNames?.value) return [];
+    // return allClientNames.value.filter(
+    //   (n) => n.toLowerCase().includes(q) && n !== clientName.value,
+    // );
+    return []; // temporary no-suggestions fallback
 });
 
 // validate client + selected primary quantity
@@ -133,7 +153,7 @@ const handleSubmit = async () => {
                   },
               ].filter((x) => x.quantity > 0);
 
-    logMovement({
+    await logMovement({
         direction: props.direction,
         clientName: clientName.value.trim(),
         items,
@@ -204,6 +224,7 @@ const onClientFocus = () => {
 onMounted(async () => {
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKeydown);
+    await loadContainerTypes(); // ensure types loaded from backend
     await nextTick();
     clientInputRef.value?.focus();
 });

@@ -1,26 +1,43 @@
 <script setup lang="ts">
+import { onMounted, computed } from "vue";
 import { Package, Trash2, Plus } from "lucide-vue-next";
 import { useApp } from "~/composables/useApp";
 import ItemListEditor from "~/components/items/ItemListEditor.vue";
 
-const { primaryItems, addPrimaryItem, removePrimaryItem, config } = useApp();
+const { config, containerTypes, loadContainerTypes, addContainerType } =
+    useApp();
+
+// Adapt backend ContainerType[] to ItemListEditor shape
+const items = computed(() =>
+    containerTypes.value.map((ct) => ({
+        id: ct.id,
+        label: ct.label,
+    })),
+);
+
+onMounted(() => {
+    // Lazy-load from backend only once per app lifetime
+    loadContainerTypes();
+});
 
 function onAddPrimary(label: string): string | void {
     const trimmed = label.trim();
     if (!trimmed) return "Item name cannot be empty.";
 
-    const isDuplicate = primaryItems.value.some(
+    const isDuplicate = items.value.some(
         (i) => i.label.toLowerCase() === trimmed.toLowerCase(),
     );
     if (isDuplicate) {
         return "An item with this name already exists.";
     }
 
-    addPrimaryItem(trimmed);
+    // Write-through to backend; cache updates on success
+    return addContainerType(trimmed) as unknown as void;
 }
 
-function onDeletePrimary(id: string) {
-    removePrimaryItem(id);
+// Delete not supported yet at API level
+function onDeletePrimary(_id: string) {
+    // TODO: implement delete endpoint & useApp.removeContainerType
 }
 </script>
 
@@ -30,7 +47,7 @@ function onDeletePrimary(id: string) {
         description="These are the container types you track quantities for. Changes take effect immediately on the dashboard."
         placeholder="e.g. White Box, Round Tray… or 'Large box, Small box, Medium box'"
         item-name-label="Item"
-        :items="primaryItems"
+        :items="items"
         color-class="'bg-[#1a1a2e]'"
         :icon="Package"
         :delete-icon="Trash2"

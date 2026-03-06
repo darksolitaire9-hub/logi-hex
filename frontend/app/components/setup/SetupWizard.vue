@@ -235,7 +235,7 @@ function handleFinish(e: Event) {
             </div>
             <h2 class="text-[#166534] mb-1">Setup complete!</h2>
             <p class="text-sm text-[#15803d]">
-                Redirecting you to the dashboard…
+                Redirecting you to the page where you can define items…
             </p>
         </div>
     </div>

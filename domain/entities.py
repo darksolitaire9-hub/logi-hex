@@ -11,6 +11,12 @@ class ContainerType:
 
 
 @dataclass
+class ContentType:
+    id: str  # e.g. "frozen", "fresh"
+    label: str  # e.g. "Frozen", "Fresh"
+
+
+@dataclass
 class Client:
     id: str  # auto-generated from name e.g. "cshin"
     name: str  # normalized lowercase e.g. "shivam"
@@ -20,8 +26,6 @@ class Client:
         norm = name.lower().strip().replace(" ", "").replace("-", "")
         client_id = f"c{norm[:4].zfill(3)}"
         return cls(id=client_id, name=name.lower().strip())
-
-
 
 
 @dataclass
@@ -76,10 +80,17 @@ class ContainerTransaction:
     container_type_id: str
     direction: Literal["OUT", "IN"]  # OUT = issued, IN = returned
     quantity: int
+    content_type_ids: list[str]  # list of ContentType IDs attached to this movement
+    note: str | None = None  # optional free-text note
 
     @classmethod
     def issue(
-        cls, client: Client, container_type_id: str, quantity: int
+        cls,
+        client: Client,
+        container_type_id: str,
+        quantity: int,
+        content_type_ids: list[str] | None = None,
+        note: str | None = None,
     ) -> "ContainerTransaction":
         return cls(
             id=uuid4().hex,
@@ -89,11 +100,18 @@ class ContainerTransaction:
             container_type_id=container_type_id,
             direction="OUT",
             quantity=quantity,
+            content_type_ids=content_type_ids or [],
+            note=note,
         )
 
     @classmethod
     def receive(
-        cls, client: Client, container_type_id: str, quantity: int
+        cls,
+        client: Client,
+        container_type_id: str,
+        quantity: int,
+        content_type_ids: list[str] | None = None,
+        note: str | None = None,
     ) -> "ContainerTransaction":
         return cls(
             id=uuid4().hex,
@@ -103,8 +121,9 @@ class ContainerTransaction:
             container_type_id=container_type_id,
             direction="IN",
             quantity=quantity,
+            content_type_ids=content_type_ids or [],
+            note=note,
         )
-
 
 
 @dataclass(frozen=True)

@@ -1,14 +1,42 @@
 // lib/api/logiHex.ts
-import type { SummaryResponse, LogMovementPayload } from "./types";
+import type {
+  SummaryResponse,
+  LogMovementPayload,
+  ContainerType,
+  CreateContainerTypePayload,
+} from "./types";
 import { $fetch } from "ofetch";
 
-// Get summary (who has what)
 export async function fetchSummary(): Promise<SummaryResponse> {
   return await $fetch("/api/summary");
 }
 
-// Placeholder: will wire to a real backend endpoint later
 export async function logMovementApi(payload: LogMovementPayload) {
-  // For now just hit /api/issue or /api/receive once you decide the mapping
-  console.log("logMovementApi called with", payload);
+  const endpoint = payload.direction === "OUT" ? "/api/issue" : "/api/receive";
+
+  return await Promise.all(
+    payload.items.map((item) =>
+      $fetch(endpoint, {
+        method: "POST",
+        body: {
+          name: payload.clientName,
+          container_type_id: item.itemId,
+          quantity: item.quantity,
+        },
+      }),
+    ),
+  );
+}
+
+export async function fetchContainerTypes(): Promise<ContainerType[]> {
+  return await $fetch("/api/container-types");
+}
+
+export async function createContainerType(
+  payload: CreateContainerTypePayload,
+): Promise<ContainerType> {
+  return await $fetch("/api/container-types", {
+    method: "POST",
+    body: payload,
+  });
 }

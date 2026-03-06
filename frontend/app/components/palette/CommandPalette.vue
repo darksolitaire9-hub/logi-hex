@@ -46,7 +46,7 @@ const emit = defineEmits<{
 const isClient =
     typeof window !== "undefined" && typeof document !== "undefined";
 
-const { config, primaryItems, contentItems, clientBalances } = useApp();
+const { config, containerTypes, contentItems, clientBalances } = useApp();
 const router = useRouter();
 
 const query = ref("");
@@ -71,9 +71,9 @@ const accentClasses: Record<string, string> = {
 
 const allItems = computed<ResultItem[]>(() => {
     const cfg = config.value;
-    const primary = primaryItems.value;
-    const content = contentItems.value;
-    const clients = clientBalances.value;
+    const primary = containerTypes.value ?? []; // ← safe fallback
+    const content = contentItems.value ?? []; // ← safe fallback
+    const clients = clientBalances.value ?? [];
 
     const items: ResultItem[] = [];
 
@@ -187,6 +187,8 @@ const filtered = computed(() => {
 const flat = computed(() => filtered.value);
 
 const grouped = computed(() => {
+    if (flat.value.length === 0) return [];
+
     const map = new Map<string, Array<{ item: ResultItem; index: number }>>();
     flat.value.forEach((item, index) => {
         const arr = map.get(item.group) ?? [];
