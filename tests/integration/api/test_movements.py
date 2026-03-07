@@ -34,6 +34,15 @@ def bootstrap_containers(client):
         "/api/tracking-items",
         json={"id": "white", "label": "White Box", "category_id": "containers"},
     )
+    # Optional content tags used in tests
+    client.post(
+        "/api/tracking-items",
+        json={"id": "veg", "label": "Veg", "category_id": "containers"},
+    )
+    client.post(
+        "/api/tracking-items",
+        json={"id": "no_onion", "label": "No onion", "category_id": "containers"},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +188,30 @@ def test_rich_receive_blocked_when_no_prior_issue(client):
         },
     )
     assert r.status_code in (400, 422)
+
+
+def test_rich_issue_with_unknown_secondary_tag_returns_404(client):
+    """
+    POST /api/movements/issue with an unknown content_type_id
+    should return 404 via UnknownContainerTypeError.
+    """
+    bootstrap_containers(client)
+
+    r = client.post(
+        "/api/movements/issue",
+        json={
+            "name": "Alice",
+            "primary_category_id": "containers",
+            "container_type_id": "white",
+            "quantity": 3,
+            "content_type_ids": ["does_not_exist"],
+            "note": "Lunch",
+        },
+    )
+    assert r.status_code == 404
+    body = r.json()
+    assert "Unknown secondary item" in body.get("detail", "")
+
 
 
 # ---------------------------------------------------------------------------
