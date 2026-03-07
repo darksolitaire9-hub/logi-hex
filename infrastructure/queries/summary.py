@@ -1,5 +1,5 @@
 # infrastructure/queries/summary.py
-from typing import Dict, List
+from typing import Dict
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession

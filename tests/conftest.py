@@ -22,7 +22,6 @@ async def reset_db():
     preventing state from leaking between tests.
 
     Uses the same engine as the app (SQLite), but wipes it each time.
-    In future, this can be swapped for an in-memory SQLite URL for speed.
     """
     async with engine.begin() as conn:
         await conn.run_sync(metadata.drop_all)

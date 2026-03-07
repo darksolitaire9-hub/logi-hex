@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from infrastructure.config import settings
+
 from .tables import metadata
 
-DATABASE_URL = "sqlite+aiosqlite:///logihex.db"
+DATABASE_URL = settings.database_url
 
 
 def create_engine(url: str = DATABASE_URL) -> AsyncEngine:
