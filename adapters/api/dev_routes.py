@@ -4,10 +4,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.entities import ContainerType
-from infrastructure.sqlite_repo import (
+from infrastructure.db.config import get_session
+from infrastructure.repositories.container_types import (
     SqlAlchemyContainerTypeRepository,
+)
+from infrastructure.repositories.transactions import (
     SqlAlchemyTransactionRepository,
-    get_session,
 )
 
 router = APIRouter(prefix="/api/dev", tags=["dev"])

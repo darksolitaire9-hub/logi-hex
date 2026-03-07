@@ -7,10 +7,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from adapters.api import build_api_router  # ← registry (Change 3)
+from adapters.api import build_api_router
 from domain.exceptions import InsufficientBalanceError, UnknownContainerTypeError
-from infrastructure.config import settings  # ← Change 1
-from infrastructure.sqlite_repo import init_db
+from infrastructure.config import settings
+from infrastructure.db.config import init_db
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

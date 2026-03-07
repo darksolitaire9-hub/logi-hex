@@ -8,7 +8,8 @@ to unit/, integration/, and any future test layers automatically.
 import pytest
 from fastapi.testclient import TestClient
 
-from infrastructure.sqlite_repo import engine, metadata
+from infrastructure.db.config import engine
+from infrastructure.db.tables import metadata
 from main import app
 
 

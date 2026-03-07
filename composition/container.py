@@ -1,19 +1,25 @@
+# composition/container.py
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.facades import LogiFacade
-from infrastructure.sqlite_repo import (
-    SqlAlchemyBalanceQuery,
-    SqlAlchemyClientRepository,
+from infrastructure.db.config import get_session
+from infrastructure.queries.balances import SqlAlchemyBalanceQuery
+from infrastructure.queries.summary import SqlAlchemySummaryQuery
+from infrastructure.repositories.clients import SqlAlchemyClientRepository
+from infrastructure.repositories.container_types import (
     SqlAlchemyContainerTypeRepository,
-    SqlAlchemyGenericTransactionRepository,
-    SqlAlchemySummaryQuery,
+)
+from infrastructure.repositories.tracking import (
     SqlAlchemyTrackingCategoryRepository,
     SqlAlchemyTrackingItemRepository,
-    SqlAlchemyTransactionRepository,
-    SqlAlchemyUnitOfWork,
-    get_session,
 )
+from infrastructure.repositories.transactions import (
+    SqlAlchemyGenericTransactionRepository,
+    SqlAlchemyTransactionRepository,
+)
+from infrastructure.uow import SqlAlchemyUnitOfWork
 
 
 async def get_facade(
