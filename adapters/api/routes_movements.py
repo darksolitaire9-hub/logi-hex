@@ -30,12 +30,15 @@ class LogContainerMovementRequest(BaseModel):
     """
     Request body for a rich movement (issue or receive).
 
-    container_type_id maps to the tracking item id within the
-    primary category (e.g. "white" in "containers" category).
+    primary_category_id identifies the category whose items are the
+    primary, balance-enforced items (e.g. "containers").
+    container_type_id maps to the tracking item id within that category
+    (e.g. "white" in "containers" category).
     content_type_ids are informational secondary tags (no balance enforced).
     """
 
     name: str
+    primary_category_id: str
     container_type_id: str
     quantity: int = Field(..., gt=0)
     content_type_ids: list[str] = []
@@ -64,7 +67,7 @@ async def issue_movement(
             primary_item_quantities={body.container_type_id: body.quantity},
             secondary_item_ids=body.content_type_ids,
             notes=body.note,
-            primary_category_id="containers",
+            primary_category_id=body.primary_category_id,
         )
     except UnknownContainerTypeError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -105,7 +108,7 @@ async def receive_movement(
             primary_item_quantities={body.container_type_id: body.quantity},
             secondary_item_ids=body.content_type_ids,
             notes=body.note,
-            primary_category_id="containers",
+            primary_category_id=body.primary_category_id,
         )
     except UnknownContainerTypeError as e:
         raise HTTPException(status_code=404, detail=str(e))

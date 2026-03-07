@@ -96,6 +96,7 @@ def test_rich_issue_returns_correct_shape(client):
         "/api/movements/issue",
         json={
             "name": "Alice",
+            "primary_category_id": "containers",  # ← added
             "container_type_id": "white",
             "quantity": 3,
             "content_type_ids": ["veg", "no_onion"],
@@ -129,6 +130,7 @@ def test_rich_receive_returns_correct_shape(client):
         "/api/movements/issue",
         json={
             "name": "Alice",
+            "primary_category_id": "containers",  # ← added
             "container_type_id": "white",
             "quantity": 3,
             "content_type_ids": [],
@@ -140,6 +142,7 @@ def test_rich_receive_returns_correct_shape(client):
         "/api/movements/receive",
         json={
             "name": "Alice",
+            "primary_category_id": "containers",  # ← added
             "container_type_id": "white",
             "quantity": 2,
             "content_type_ids": ["veg"],
@@ -168,6 +171,7 @@ def test_rich_receive_blocked_when_no_prior_issue(client):
         "/api/movements/receive",
         json={
             "name": "Alice",
+            "primary_category_id": "containers",  # ← added
             "container_type_id": "white",
             "quantity": 1,
             "content_type_ids": [],
@@ -194,6 +198,7 @@ def test_summary_reflects_outstanding_after_rich_movements(client):
         "/api/movements/issue",
         json={
             "name": "Alice",
+            "primary_category_id": "containers",  # ← added
             "container_type_id": "white",
             "quantity": 3,
             "content_type_ids": [],
@@ -204,6 +209,7 @@ def test_summary_reflects_outstanding_after_rich_movements(client):
         "/api/movements/receive",
         json={
             "name": "Alice",
+            "primary_category_id": "containers",  # ← added
             "container_type_id": "white",
             "quantity": 2,
             "content_type_ids": [],
