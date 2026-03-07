@@ -40,11 +40,32 @@ class CreateTrackingItemRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Response models
+# ---------------------------------------------------------------------------
+
+
+class TrackingCategoryResponse(BaseModel):
+    id: str
+    name: str
+    enforce_returns: bool
+
+
+class TrackingItemResponse(BaseModel):
+    id: str
+    label: str
+    category_id: str
+
+
+# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
 
-@router.post("/tracking-categories", status_code=201)
+@router.post(
+    "/tracking-categories",
+    status_code=201,
+    response_model=TrackingCategoryResponse,
+)
 async def create_tracking_category(
     body: CreateTrackingCategoryRequest,
     facade: LogiFacade = Depends(get_facade),
@@ -60,14 +81,14 @@ async def create_tracking_category(
         name=body.name,
         enforce_returns=body.enforce_returns,
     )
-    return {
-        "id": category.id,
-        "name": category.name,
-        "enforce_returns": category.enforce_returns,
-    }
+    return TrackingCategoryResponse(
+        id=category.id,
+        name=category.name,
+        enforce_returns=category.enforce_returns,
+    )
 
 
-@router.post("/tracking-items", status_code=201)
+@router.post("/tracking-items", status_code=201, response_model=TrackingItemResponse)
 async def create_tracking_item(
     body: CreateTrackingItemRequest,
     facade: LogiFacade = Depends(get_facade),
@@ -82,8 +103,8 @@ async def create_tracking_item(
         label=body.label,
         category_id=body.category_id,
     )
-    return {
-        "id": item.id,
-        "label": item.label,
-        "category_id": item.category_id,
-    }
+    return TrackingItemResponse(
+        id=item.id,
+        label=item.label,
+        category_id=item.category_id,
+    )
