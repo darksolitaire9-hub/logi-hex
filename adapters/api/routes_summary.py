@@ -1,19 +1,52 @@
+"""
+Summary and balance query API routes.
+
+Read-only endpoints that return the current state of:
+- All non-zero balances per (client, tracking item)
+- Per-client summaries with grand total
+"""
+
 from fastapi import APIRouter, Depends
 
 from application.facades import LogiFacade
-from composition.container import get_facade
-from domain.entities import Balance
+
+from .dependencies import get_facade
 
 router = APIRouter(prefix="/api")
 
 
-@router.get("/balances", response_model=list[Balance])
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("/balances")
 async def get_balances(facade: LogiFacade = Depends(get_facade)):
-    return await facade.balances()
+    """
+    Return all non-zero balances per (client, tracking item).
+
+    A positive balance means the client still owes that item.
+    """
+    balances = await facade.balances()
+    return [
+        {
+            "client_id": b.client_id,
+            "client_name": b.client_name,
+            "container_type_id": b.container_type_id,
+            "container_label": b.container_label,
+            "balance": b.balance,
+        }
+        for b in balances
+    ]
 
 
 @router.get("/summary")
 async def get_summary(facade: LogiFacade = Depends(get_facade)):
+    """
+    Return a per-client summary of all outstanding balances.
+
+    Includes grand_total across all clients and all item types.
+    """
     result = await facade.summary()
     return {
         "clients": [
