@@ -46,11 +46,32 @@ class LogContainerMovementRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Response models
+# ---------------------------------------------------------------------------
+
+
+class MovementPrimaryItem(BaseModel):
+    tracking_item_id: str
+    label: str
+    quantity: int
+
+
+class MovementResponse(BaseModel):
+    transaction_id: str
+    client_id: str
+    client_name: str
+    direction: str
+    notes: str | None
+    primary_items: list[MovementPrimaryItem]
+    secondary_items: list[str]
+
+
+# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
 
-@router.post("/movements/issue", status_code=201)
+@router.post("/movements/issue", status_code=201, response_model=MovementResponse)
 async def issue_movement(
     body: LogContainerMovementRequest,
     facade: LogiFacade = Depends(get_facade),
@@ -73,25 +94,26 @@ async def issue_movement(
         raise HTTPException(status_code=404, detail=str(e))
     except InsufficientBalanceError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    return {
-        "transaction_id": tx.id,
-        "client_id": tx.client_id,
-        "client_name": tx.client_name,
-        "direction": tx.direction,
-        "notes": tx.notes,
-        "primary_items": [
-            {
-                "tracking_item_id": li.tracking_item_id,
-                "label": li.label,
-                "quantity": li.quantity,
-            }
+
+    return MovementResponse(
+        transaction_id=tx.id,
+        client_id=tx.client_id,
+        client_name=tx.client_name,
+        direction=tx.direction,
+        notes=tx.notes,
+        primary_items=[
+            MovementPrimaryItem(
+                tracking_item_id=li.tracking_item_id,
+                label=li.label,
+                quantity=li.quantity,
+            )
             for li in tx.line_items
         ],
-        "secondary_items": tx.secondary_items,
-    }
+        secondary_items=list(tx.secondary_items),
+    )
 
 
-@router.post("/movements/receive", status_code=201)
+@router.post("/movements/receive", status_code=201, response_model=MovementResponse)
 async def receive_movement(
     body: LogContainerMovementRequest,
     facade: LogiFacade = Depends(get_facade),
@@ -114,19 +136,20 @@ async def receive_movement(
         raise HTTPException(status_code=404, detail=str(e))
     except InsufficientBalanceError as e:
         raise HTTPException(status_code=422, detail=str(e))
-    return {
-        "transaction_id": tx.id,
-        "client_id": tx.client_id,
-        "client_name": tx.client_name,
-        "direction": tx.direction,
-        "notes": tx.notes,
-        "primary_items": [
-            {
-                "tracking_item_id": li.tracking_item_id,
-                "label": li.label,
-                "quantity": li.quantity,
-            }
+
+    return MovementResponse(
+        transaction_id=tx.id,
+        client_id=tx.client_id,
+        client_name=tx.client_name,
+        direction=tx.direction,
+        notes=tx.notes,
+        primary_items=[
+            MovementPrimaryItem(
+                tracking_item_id=li.tracking_item_id,
+                label=li.label,
+                quantity=li.quantity,
+            )
             for li in tx.line_items
         ],
-        "secondary_items": tx.secondary_items,
-    }
+        secondary_items=list(tx.secondary_items),
+    )
