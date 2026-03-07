@@ -121,7 +121,8 @@ def test_issue_items_creates_out_transaction_with_line_items():
         items={
             "white": TrackingItem(
                 id="white", category_id="containers", label="White Box"
-            )
+            ),
+            "veg": TrackingItem(id="veg", category_id="containers", label="Veg"),
         }
     )
     tx_repo = FakeGenericTxRepo()
@@ -204,7 +205,8 @@ def test_return_items_creates_in_transaction_when_balance_ok():
         items={
             "white": TrackingItem(
                 id="white", category_id="containers", label="White Box"
-            )
+            ),
+            "veg": TrackingItem(id="veg", category_id="containers", label="Veg"),
         }
     )
     tx_repo = FakeGenericTxRepo()
@@ -247,3 +249,96 @@ def test_return_items_creates_in_transaction_when_balance_ok():
     assert tx_repo.saved[1].secondary_items == ["veg"]
     assert tx_repo.saved[1].notes == "Returned boxes"
     assert ret_tx.direction == "IN"
+
+
+def test_issue_items_invalid_secondary_item_raises():
+    client_repo = FakeClientRepo()
+    tracking_category_repo = FakeTrackingCategoryRepo(
+        categories={
+            "containers": TrackingCategory(
+                id="containers", name="Containers", enforce_returns=True
+            )
+        }
+    )
+    tracking_item_repo = FakeTrackingItemRepo(
+        items={
+            # Only primary item exists, no tag "veg"
+            "white": TrackingItem(
+                id="white", category_id="containers", label="White Box"
+            )
+        }
+    )
+    tx_repo = FakeGenericTxRepo()
+    balance_query = FakeBalanceQuery()
+
+    with pytest.raises(UnknownContainerTypeError):
+        run(
+            services.issue_items(
+                name="Alice",
+                primary_item_quantities={"white": 3},
+                secondary_item_ids=["veg"],
+                notes=None,
+                client_repo=client_repo,
+                tracking_item_repo=tracking_item_repo,
+                tracking_category_repo=tracking_category_repo,
+                tx_repo=tx_repo,
+                balance_query=balance_query,
+                primary_category_id="containers",
+            )
+        )
+    assert tx_repo.saved == []
+
+
+def test_return_items_invalid_secondary_item_raises():
+    client_repo = FakeClientRepo()
+    tracking_category_repo = FakeTrackingCategoryRepo(
+        categories={
+            "containers": TrackingCategory(
+                id="containers", name="Containers", enforce_returns=True
+            )
+        }
+    )
+    tracking_item_repo = FakeTrackingItemRepo(
+        items={
+            # Only primary item; no tag "veg"
+            "white": TrackingItem(
+                id="white", category_id="containers", label="White Box"
+            )
+        }
+    )
+    tx_repo = FakeGenericTxRepo()
+
+    issue_tx = run(
+        services.issue_items(
+            name="Alice",
+            primary_item_quantities={"white": 3},
+            secondary_item_ids=[],
+            notes=None,
+            client_repo=client_repo,
+            tracking_item_repo=tracking_item_repo,
+            tracking_category_repo=tracking_category_repo,
+            tx_repo=tx_repo,
+            balance_query=FakeBalanceQuery(),
+            primary_category_id="containers",
+        )
+    )
+
+    balance_query = FakeBalanceQuery(balances={(issue_tx.client_id, "white"): 3})
+
+    with pytest.raises(UnknownContainerTypeError):
+        run(
+            services.return_items(
+                name="Alice",
+                primary_item_quantities={"white": 2},
+                secondary_item_ids=["veg"],
+                notes="Returned boxes",
+                client_repo=client_repo,
+                tracking_item_repo=tracking_item_repo,
+                tracking_category_repo=tracking_category_repo,
+                tx_repo=tx_repo,
+                balance_query=balance_query,
+                primary_category_id="containers",
+            )
+        )
+    # Only the OUT tx should be persisted
+    assert len(tx_repo.saved) == 1

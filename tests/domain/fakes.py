@@ -128,3 +128,5 @@ class FakeBalanceQuery(BalanceQueryPort):
 
     async def get_balances(self) -> List[Balance]:
         return []
+
+

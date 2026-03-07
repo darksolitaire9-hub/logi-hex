@@ -17,6 +17,16 @@ from .ports import (
 )
 
 
+async def _ensure_secondary_items_exist(
+    tracking_item_repo: TrackingItemRepositoryPort,
+    secondary_item_ids: list[str],
+) -> None:
+    for secondary_id in secondary_item_ids:
+        item = await tracking_item_repo.get_by_id(secondary_id)
+        if item is None:
+            raise UnknownContainerTypeError(f"Unknown secondary item '{secondary_id}'.")
+
+
 async def issue_containers(
     name: str,
     container_type_id: str,
@@ -129,6 +139,9 @@ async def issue_items(
     # 2. get or create client
     client: Client = await client_repo.get_or_create_by_name(name)
 
+    # 2b. validate secondary items exist
+    await _ensure_secondary_items_exist(tracking_item_repo, secondary_item_ids)
+
     # 3. load and validate primary items
     line_items: list[TransactionLineItem] = []
     for item_id, qty in primary_item_quantities.items():
@@ -192,6 +205,9 @@ async def return_items(
 
     # 2. get or create client
     client: Client = await client_repo.get_or_create_by_name(name)
+
+    # 2b. validate secondary items exist
+    await _ensure_secondary_items_exist(tracking_item_repo, secondary_item_ids)
 
     # 3. load items and enforce balance per item
     line_items: list[TransactionLineItem] = []
