@@ -3,6 +3,8 @@ import type {
   LogMovementPayload,
   ContainerType,
   CreateContainerTypePayload,
+  TrackingItem,
+  CreateTrackingItemPayload,
 } from "./types";
 import { $fetch } from "ofetch";
 
@@ -11,22 +13,25 @@ export async function fetchSummary(): Promise<SummaryResponse> {
 }
 
 export async function logMovementApi(payload: LogMovementPayload) {
-  const endpoint = payload.direction === "OUT" ? "/api/issue" : "/api/receive";
+  const endpoint =
+    payload.direction === "OUT"
+      ? "/api/movements/issue"
+      : "/api/movements/receive";
 
-  return await Promise.all(
-    payload.items.map((item) =>
-      $fetch(endpoint, {
-        method: "POST",
-        body: {
-          name: payload.clientName,
-          container_type_id: item.itemId,
-          quantity: item.quantity,
-        },
-      }),
-    ),
-  );
+  return await $fetch(endpoint, {
+    method: "POST",
+    body: {
+      name: payload.clientName,
+      primary_category_id: payload.primaryCategoryId,
+      container_type_id: payload.containerTypeId,
+      quantity: payload.quantity,
+      content_type_ids: payload.contentTypeIds,
+      note: payload.note,
+    },
+  });
 }
 
+// Legacy container-types API (kept for now in case anything still uses it)
 export async function fetchContainerTypes(): Promise<ContainerType[]> {
   return await $fetch("/api/container-types");
 }
@@ -60,5 +65,30 @@ export async function createTrackingCategory(
   return await $fetch("/api/tracking-categories", {
     method: "POST",
     body: payload,
+  });
+}
+
+// --- TRACKING ITEMS ---
+
+export async function fetchTrackingItems(
+  categoryId: string,
+): Promise<TrackingItem[]> {
+  return await $fetch("/api/tracking-items", {
+    query: { category_id: categoryId },
+  });
+}
+
+export async function createTrackingItem(
+  payload: CreateTrackingItemPayload,
+): Promise<TrackingItem> {
+  return await $fetch("/api/tracking-items", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function deleteTrackingItem(itemId: string): Promise<void> {
+  await $fetch(`/api/tracking-items/${itemId}`, {
+    method: "DELETE",
   });
 }

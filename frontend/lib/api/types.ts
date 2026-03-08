@@ -37,7 +37,21 @@ export interface LogMovementItem {
 export interface LogMovementPayload {
   direction: Direction;
   clientName: string;
-  items: LogMovementItem[];
-  contentTags: string[];
+  primaryCategoryId: string;
+  containerTypeId: string;
+  quantity: number;
+  contentTypeIds: string[];
   note?: string;
 }
+
+export type TrackingItem = {
+  id: string;
+  label: string;
+  category_id: string;
+};
+
+export type CreateTrackingItemPayload = {
+  id: string;
+  label: string;
+  category_id: string;
+};

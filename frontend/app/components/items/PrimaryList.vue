@@ -4,10 +4,15 @@ import { Package, Trash2, Plus } from "lucide-vue-next";
 import { useApp } from "~/composables/useApp";
 import ItemListEditor from "~/components/items/ItemListEditor.vue";
 
-const { config, containerTypes, loadContainerTypes, addContainerType } =
-    useApp();
+const {
+    config,
+    containerTypes,
+    loadContainerTypes,
+    addContainerType,
+    removeContainerType,
+} = useApp();
 
-// Adapt backend ContainerType[] to ItemListEditor shape
+// Adapt backend TrackingItem[] to ItemListEditor shape
 const items = computed(() =>
     containerTypes.value.map((ct) => ({
         id: ct.id,
@@ -32,12 +37,12 @@ function onAddPrimary(label: string): string | void {
     }
 
     // Write-through to backend; cache updates on success
-    return addContainerType(trimmed) as unknown as void;
+    addContainerType(trimmed);
 }
 
-// Delete not supported yet at API level
-function onDeletePrimary(_id: string) {
-    // TODO: implement delete endpoint & useApp.removeContainerType
+// Delete supported via tracking-items API
+function onDeletePrimary(id: string) {
+    removeContainerType(id);
 }
 </script>
 
