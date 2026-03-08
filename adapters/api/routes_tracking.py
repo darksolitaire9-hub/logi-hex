@@ -108,3 +108,38 @@ async def create_tracking_item(
         label=item.label,
         category_id=item.category_id,
     )
+
+
+@router.get("/tracking-items", response_model=list[TrackingItemResponse])
+async def list_tracking_items(
+    category_id: str,
+    facade: LogiFacade = Depends(get_facade),
+):
+    """
+    List all active tracking items within a category.
+
+    Uses soft-delete semantics: only items with is_active=True are returned.
+    """
+    items = await facade.list_active_tracking_items(category_id)
+    return [
+        TrackingItemResponse(
+            id=i.id,
+            label=i.label,
+            category_id=i.category_id,
+        )
+        for i in items
+    ]
+
+
+@router.delete("/tracking-items/{item_id}", status_code=204)
+async def delete_tracking_item(
+    item_id: str,
+    facade: LogiFacade = Depends(get_facade),
+):
+    """
+    Soft delete a tracking item.
+
+    Marks the item as inactive so it disappears from the UI but
+    remains in history.
+    """
+    await facade.delete_tracking_item(item_id)
