@@ -143,22 +143,16 @@ const handleSubmit = async () => {
 
     isSubmitting.value = true;
 
-    const items =
-        selectedPrimaryId.value == null
-            ? []
-            : [
-                  {
-                      itemId: selectedPrimaryId.value,
-                      quantity: parseInt(primaryQuantity.value || "0", 10),
-                  },
-              ].filter((x) => x.quantity > 0);
+    const qty = parseInt(primaryQuantity.value || "0", 10);
 
     await logMovement({
         direction: props.direction,
         clientName: clientName.value.trim(),
-        items,
-        contentTags: Array.from(selectedContent.value),
-        note: note.value.trim(),
+        primaryCategoryId: config.value.primaryCategoryId!,
+        containerTypeId: selectedPrimaryId.value!,
+        quantity: qty,
+        contentTypeIds: Array.from(selectedContent.value),
+        note: note.value.trim() || undefined,
     });
 
     window.setTimeout(() => {
