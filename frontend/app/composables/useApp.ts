@@ -1,3 +1,4 @@
+// app/composables/useApp.ts
 import { ref } from "vue";
 import {
   fetchSummary,
@@ -10,19 +11,12 @@ import type { TrackingItem, LogMovementPayload } from "../../lib/api/types";
 
 export type Direction = "OUT" | "IN";
 
-type ContentItem = { id: string; label: string };
 type ClientItem = { itemId: string | number; label: string; quantity: number };
 type ClientBalance = {
   clientName: string;
   total: number;
   items: ClientItem[];
 };
-
-const contentItems = ref<ContentItem[]>([]);
-
-// --- CONTAINER TYPES (backend-backed via tracking items) ---
-const containerTypes = ref<TrackingItem[]>([]);
-let containerTypesFetched = false;
 
 // --- CONFIG (persisted) ---
 const CONFIG_KEY = "logi-hex-config";
@@ -61,6 +55,10 @@ function updateConfig(newConfig: Partial<typeof config.value>) {
   }
 }
 
+// --- PRIMARY ITEMS (container types) via tracking items ---
+const containerTypes = ref<TrackingItem[]>([]);
+let containerTypesFetched = false;
+
 async function loadContainerTypes() {
   if (containerTypesFetched) return;
   const primaryCategoryId = config.value.primaryCategoryId;
@@ -88,6 +86,39 @@ async function addContainerType(label: string) {
 async function removeContainerType(id: string) {
   await deleteTrackingItem(id);
   containerTypes.value = containerTypes.value.filter((ct) => ct.id !== id);
+}
+
+// --- CONTENT ITEMS via tracking items ---
+const contentItems = ref<TrackingItem[]>([]);
+let contentItemsFetched = false;
+
+async function loadContentItems() {
+  if (contentItemsFetched) return;
+  const contentCategoryId = config.value.contentCategoryId;
+  if (!contentCategoryId) return; // setup not complete yet
+  contentItems.value = await fetchTrackingItems(contentCategoryId);
+  contentItemsFetched = true;
+}
+
+async function addContentItem(label: string) {
+  const trimmed = label.trim();
+  if (!trimmed) return;
+  const id = trimmed.toLowerCase().replace(/\s+/g, "-");
+
+  const contentCategoryId = config.value.contentCategoryId;
+  if (!contentCategoryId) return;
+
+  const item = await createTrackingItem({
+    id,
+    label: trimmed,
+    category_id: contentCategoryId,
+  });
+  contentItems.value.push(item);
+}
+
+async function removeContentItem(id: string) {
+  await deleteTrackingItem(id);
+  contentItems.value = contentItems.value.filter((ci) => ci.id !== id);
 }
 
 // --- SUMMARY ---
@@ -121,14 +152,17 @@ export function useApp() {
     grandTotal,
     updateConfig,
 
-    // container types
+    // primary container types
     containerTypes,
     loadContainerTypes,
     addContainerType,
     removeContainerType,
 
-    // content items (to be wired later)
+    // content items
     contentItems,
+    loadContentItems,
+    addContentItem,
+    removeContentItem,
 
     // movements + summary
     logMovement,

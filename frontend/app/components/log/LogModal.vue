@@ -29,11 +29,12 @@ const {
     loadContainerTypes,
     logMovement,
     config,
-    // keep these if you still want suggestions and content tags
-    // comment out if you want to drop them for now
     contentItems,
-    // allClientNames,
+    loadContentItems,
 } = useApp();
+
+// Global errors (field + submit)
+const errors = reactive<Record<string, string>>({});
 
 // Derive primary items from containerTypes for LogPrimaryPicker
 const primaryItems = computed(() =>
@@ -50,8 +51,6 @@ const clientName = ref("");
 const showSuggestions = ref(false);
 const note = ref("");
 const isSubmitting = ref(false);
-
-const errors = reactive<Record<string, string>>({});
 
 // quantities keyed by primary item id
 const quantities = reactive<Record<string, string>>({});
@@ -106,14 +105,9 @@ const focusRing = computed(() =>
         : "focus-visible:ring-[#16a34a]",
 );
 
-// If you still have allClientNames in useApp, uncomment and keep this.
-// Otherwise, you can remove suggestions entirely for now.
+// Suggestions (currently disabled)
 const filteredSuggestions = computed(() => {
     const q = clientName.value.toLowerCase();
-    // if (!allClientNames?.value) return [];
-    // return allClientNames.value.filter(
-    //   (n) => n.toLowerCase().includes(q) && n !== clientName.value,
-    // );
     return []; // temporary no-suggestions fallback
 });
 
@@ -142,22 +136,33 @@ const handleSubmit = async () => {
     }
 
     isSubmitting.value = true;
+    delete errors.submit; // clear previous submit error
 
-    const qty = parseInt(primaryQuantity.value || "0", 10);
+    try {
+        const qty = parseInt(primaryQuantity.value || "0", 10);
 
-    await logMovement({
-        direction: props.direction,
-        clientName: clientName.value.trim(),
-        primaryCategoryId: config.value.primaryCategoryId!,
-        containerTypeId: selectedPrimaryId.value!,
-        quantity: qty,
-        contentTypeIds: Array.from(selectedContent.value),
-        note: note.value.trim() || undefined,
-    });
+        await logMovement({
+            direction: props.direction,
+            clientName: clientName.value.trim(),
+            primaryCategoryId: config.value.primaryCategoryId!,
+            containerTypeId: selectedPrimaryId.value!,
+            quantity: qty,
+            contentTypeIds: Array.from(selectedContent.value),
+            note: note.value.trim() || undefined,
+        });
 
-    window.setTimeout(() => {
-        emit("success", clientName.value.trim(), props.direction);
-    }, 200);
+        window.setTimeout(() => {
+            emit("success", clientName.value.trim(), props.direction);
+        }, 200);
+    } catch (err: any) {
+        const detail =
+            err?.data?.detail ??
+            err?.message ??
+            "Something went wrong. Please try again.";
+        errors.submit = detail;
+    } finally {
+        isSubmitting.value = false;
+    }
 };
 
 // Focus trap + Escape close
@@ -218,7 +223,8 @@ const onClientFocus = () => {
 onMounted(async () => {
     document.body.style.overflow = "hidden";
     document.addEventListener("keydown", onKeydown);
-    await loadContainerTypes(); // ensure types loaded from backend
+    await loadContainerTypes();
+    await loadContentItems();
     await nextTick();
     clientInputRef.value?.focus();
 });
@@ -323,6 +329,22 @@ watch(
                                     ]"
                                 >
                                     {{ errors.quantities }}
+                                </div>
+
+                                <!-- Submit error (e.g. over-return) -->
+                                <div
+                                    v-if="errors.submit"
+                                    role="alert"
+                                    :class="[
+                                        accentBg,
+                                        accentBorder,
+                                        'border rounded-lg px-4 py-3 text-sm font-medium',
+                                        isOut
+                                            ? 'text-[#9a3412]'
+                                            : 'text-[#166534]',
+                                    ]"
+                                >
+                                    {{ errors.submit }}
                                 </div>
 
                                 <!-- Client name -->
