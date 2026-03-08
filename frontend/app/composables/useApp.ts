@@ -45,28 +45,28 @@ async function addContainerType(label: string) {
 const CONFIG_KEY = "logi-hex-config";
 
 function loadStoredConfig() {
+  const base = {
+    primaryCategoryName: "Primary containers",
+    contentCategoryName: "Content tags",
+    primaryCategoryId: null as string | null,
+    contentCategoryId: null as string | null,
+    isSetupComplete: false,
+  };
+
   if (!import.meta.client) {
-    return {
-      primaryCategoryName: "Primary containers",
-      contentCategoryName: "Content tags",
-      isSetupComplete: false,
-    };
+    return base;
   }
 
   const stored = localStorage.getItem(CONFIG_KEY);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      return { ...base, ...JSON.parse(stored) };
     } catch {
-      // corrupted storage → fall through to default
+      // corrupted storage → fall back to base
     }
   }
 
-  return {
-    primaryCategoryName: "Primary containers",
-    contentCategoryName: "Content tags",
-    isSetupComplete: false,
-  };
+  return base;
 }
 
 const config = ref(loadStoredConfig());

@@ -3,6 +3,7 @@ import { nextTick, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ArrowRight, CheckCircle, Package, Tag } from "lucide-vue-next";
 import { useApp } from "~/composables/useApp";
+import { createTrackingCategory } from "../../../lib/api/logiHex";
 
 const router = useRouter();
 const { updateConfig } = useApp();
@@ -11,6 +12,7 @@ const step = ref(1);
 const primaryName = ref("");
 const contentName = ref("");
 const primaryError = ref("");
+const setupError = ref("");
 const saved = ref(false);
 
 const contentInput = ref<HTMLInputElement | null>(null);
@@ -35,19 +37,53 @@ function handleStep1(e: Event) {
     step.value = 2;
 }
 
-function handleFinish(e: Event) {
+async function handleFinish(e: Event) {
     e.preventDefault();
+    setupError.value = "";
 
-    updateConfig({
-        primaryCategoryName: primaryName.value.trim() || "Box Types",
-        contentCategoryName: contentName.value.trim() || "Contents",
-        isSetupComplete: true,
-    });
+    const primaryLabel = primaryName.value.trim() || "Box Types";
+    const contentLabel = contentName.value.trim();
 
-    saved.value = true;
-    setTimeout(() => {
-        router.push("/primary");
-    }, 1200);
+    const primaryId =
+        primaryLabel.toLowerCase().replace(/\s+/g, "-") || "containers";
+    const contentId =
+        contentLabel.toLowerCase().replace(/\s+/g, "-") || "contents";
+
+    try {
+        // 1. Create primary category (enforce_returns = true)
+        const primaryCategory = await createTrackingCategory({
+            id: primaryId,
+            name: primaryLabel,
+            enforce_returns: true,
+        });
+
+        // 2. Optionally create content category
+        let contentCategoryId: string | null = null;
+        if (contentLabel) {
+            const contentCategory = await createTrackingCategory({
+                id: contentId,
+                name: contentLabel,
+                enforce_returns: false,
+            });
+            contentCategoryId = contentCategory.id;
+        }
+
+        updateConfig({
+            primaryCategoryName: primaryCategory.name,
+            contentCategoryName: contentLabel || "",
+            primaryCategoryId: primaryCategory.id,
+            contentCategoryId,
+            isSetupComplete: true,
+        });
+
+        saved.value = true;
+        setTimeout(() => {
+            router.push("/primary");
+        }, 1200);
+    } catch (err: any) {
+        setupError.value =
+            err?.data?.detail ?? "Setup failed. Please try again.";
+    }
 }
 </script>
 
@@ -203,6 +239,11 @@ function handleFinish(e: Event) {
                         Leave empty to disable content tagging entirely.
                     </p>
                 </div>
+
+                <!-- Error message -->
+                <p v-if="setupError" class="mb-3 text-xs text-[#d4183d]">
+                    {{ setupError }}
+                </p>
 
                 <div class="flex gap-2">
                     <button
