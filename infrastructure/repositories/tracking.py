@@ -1,4 +1,3 @@
-# infrastructure/repositories/tracking.py
 from typing import List, Optional
 
 import sqlalchemy as sa
@@ -90,6 +89,7 @@ class SqlAlchemyTrackingItemRepository(TrackingItemRepositoryPort):
                 id=row.id,
                 category_id=row.category_id,
                 label=row.label,
+                is_active=row.is_active,
             )
             for row in rows
         ]
@@ -105,6 +105,7 @@ class SqlAlchemyTrackingItemRepository(TrackingItemRepositoryPort):
             id=row.id,
             category_id=row.category_id,
             label=row.label,
+            is_active=row.is_active,
         )
 
     async def save(self, item: TrackingItem) -> None:
@@ -115,6 +116,7 @@ class SqlAlchemyTrackingItemRepository(TrackingItemRepositoryPort):
                     id=item.id,
                     category_id=item.category_id,
                     label=item.label,
+                    is_active=item.is_active,
                 )
             )
         else:
@@ -124,6 +126,7 @@ class SqlAlchemyTrackingItemRepository(TrackingItemRepositoryPort):
                 .values(
                     category_id=item.category_id,
                     label=item.label,
+                    is_active=item.is_active,
                 )
             )
 
@@ -131,3 +134,23 @@ class SqlAlchemyTrackingItemRepository(TrackingItemRepositoryPort):
         await self.session.execute(
             sa.delete(tracking_items_table).where(tracking_items_table.c.id == item_id)
         )
+
+    async def get_by_category_and_label(
+        self, category_id: str, label: str
+    ) -> Optional[TrackingItem]:
+        result = await self.session.execute(
+            sa.select(tracking_items_table).where(
+                (tracking_items_table.c.category_id == category_id)
+                & (tracking_items_table.c.label == label)
+            )
+        )
+        row = result.first()
+        if row is None:
+            return None
+        return TrackingItem(
+            id=row.id,
+            category_id=row.category_id,
+            label=row.label,
+            is_active=row.is_active,
+        )
+        

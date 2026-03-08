@@ -56,6 +56,7 @@ class TrackingItem:
     id: str
     category_id: str
     label: str
+    is_active: bool = True
 
 
 @dataclass(frozen=True)

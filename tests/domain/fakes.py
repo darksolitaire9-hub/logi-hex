@@ -8,6 +8,7 @@ from domain.entities import (
     Client,
     ContainerTransaction,
     ContainerType,
+    SummaryResult,
     TrackingCategory,
     TrackingItem,
     Transaction,
@@ -17,6 +18,7 @@ from domain.ports import (
     ClientRepositoryPort,
     ContainerTypeRepositoryPort,
     GenericTransactionRepositoryPort,
+    SummaryQueryPort,
     TrackingCategoryRepositoryPort,
     TrackingItemRepositoryPort,
     TransactionRepositoryPort,
@@ -25,6 +27,12 @@ from domain.ports import (
 
 def run(coro):
     return asyncio.get_event_loop().run_until_complete(coro)
+
+
+class FakeSummaryQuery(SummaryQueryPort):
+    async def get_summary(self) -> SummaryResult:
+        # minimal stub; not used in these tests
+        return SummaryResult()
 
 
 class FakeClientRepo(ClientRepositoryPort):
@@ -95,6 +103,14 @@ class FakeTrackingItemRepo(TrackingItemRepositoryPort):
     async def delete(self, item_id: str) -> None:
         self._items.pop(item_id, None)
 
+    async def get_by_category_and_label(
+        self, category_id: str, label: str
+    ) -> TrackingItem | None:
+        for item in self._items.values():
+            if item.category_id == category_id and item.label == label:
+                return item
+        return None
+
 
 class FakeTxRepo(TransactionRepositoryPort):
     def __init__(self):
@@ -128,5 +144,3 @@ class FakeBalanceQuery(BalanceQueryPort):
 
     async def get_balances(self) -> List[Balance]:
         return []
-
-

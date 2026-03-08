@@ -43,6 +43,57 @@ class LogiFacade:
         self.tracking_item_repo = tracking_item_repo
         self.generic_tx_repo = generic_tx_repo
 
+    async def create_tracking_item(
+        self,
+        item_id: str,
+        label: str,
+        category_id: str,
+    ) -> TrackingItem:
+        try:
+            existing = await self.tracking_item_repo.get_by_category_and_label(
+                category_id=category_id,
+                label=label,
+            )
+
+            if existing is not None:
+                existing.is_active = True
+                existing.label = label
+                await self.tracking_item_repo.save(existing)
+                await self.uow.commit()
+                return existing
+
+            item = TrackingItem(
+                id=item_id,
+                category_id=category_id,
+                label=label,
+                is_active=True,
+            )
+            await self.tracking_item_repo.save(item)
+            await self.uow.commit()
+            return item
+        except Exception:
+            await self.uow.rollback()
+            raise
+
+    async def delete_tracking_item(self, item_id: str) -> None:
+        try:
+            await services.soft_delete_tracking_item(
+                item_id=item_id,
+                tracking_item_repo=self.tracking_item_repo,
+            )
+            await self.uow.commit()
+        except Exception:
+            await self.uow.rollback()
+            raise
+
+    async def list_tracking_categories(self) -> list[TrackingCategory]:
+        return await services.list_tracking_categories(self.tracking_category_repo)
+
+    async def list_active_tracking_items(self, category_id: str) -> list[TrackingItem]:
+        return await services.list_active_tracking_items(
+            category_id, self.tracking_item_repo
+        )
+
     async def issue(
         self,
         name: str,
@@ -169,25 +220,6 @@ class LogiFacade:
             await self.tracking_category_repo.save(category)
             await self.uow.commit()
             return category
-        except Exception:
-            await self.uow.rollback()
-            raise
-
-    async def create_tracking_item(
-        self,
-        item_id: str,
-        label: str,
-        category_id: str,
-    ) -> TrackingItem:
-        try:
-            item = TrackingItem(
-                id=item_id,
-                category_id=category_id,
-                label=label,
-            )
-            await self.tracking_item_repo.save(item)
-            await self.uow.commit()
-            return item
         except Exception:
             await self.uow.rollback()
             raise

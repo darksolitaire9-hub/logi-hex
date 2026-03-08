@@ -2,6 +2,8 @@ from .entities import (
     Balance,
     Client,
     ContainerTransaction,
+    TrackingCategory,
+    TrackingItem,
     Transaction,
     TransactionLineItem,
 )
@@ -10,10 +12,10 @@ from .ports import (
     BalanceQueryPort,
     ClientRepositoryPort,
     ContainerTypeRepositoryPort,
-    GenericTransactionRepositoryPort,  # new
+    GenericTransactionRepositoryPort,
     TrackingCategoryRepositoryPort,
     TrackingItemRepositoryPort,
-    TransactionRepositoryPort,  # still used by old functions
+    TransactionRepositoryPort,
 )
 
 
@@ -23,7 +25,8 @@ async def _ensure_secondary_items_exist(
 ) -> None:
     for secondary_id in secondary_item_ids:
         item = await tracking_item_repo.get_by_id(secondary_id)
-        if item is None:
+        # ensure secondary items are active too
+        if item is None or not item.is_active:
             raise UnknownContainerTypeError(f"Unknown secondary item '{secondary_id}'.")
 
 
@@ -35,23 +38,13 @@ async def issue_containers(
     container_type_repo: ContainerTypeRepositoryPort,
     tx_repo: TransactionRepositoryPort,
 ) -> ContainerTransaction:
-    """
-    Use case: issue containers to a client (OUT).
-    - Validates container type exists.
-    - Normalizes client name and auto-assigns client_id.
-    - Appends an OUT transaction to the ledger.
-    """
-    # 1. validate container type exists
     container_type = await container_type_repo.get_by_id(container_type_id)
     if container_type is None:
         raise UnknownContainerTypeError(
             f"Unknown container type '{container_type_id}'."
         )
 
-    # 2. get or create client
     client: Client = await client_repo.get_or_create_by_name(name)
-
-    # 3. create and persist transaction
     tx = ContainerTransaction.issue(client, container_type_id, quantity)
     await tx_repo.save(tx)
     return tx
@@ -66,24 +59,14 @@ async def return_containers(
     tx_repo: TransactionRepositoryPort,
     balance_query: BalanceQueryPort,
 ) -> ContainerTransaction:
-    """
-    Use case: record containers returned by a client (IN).
-    - Validates container type exists.
-    - Enforces OUT - IN >= 0 (cannot return more than owed).
-    - Normalizes client name and reuses existing client_id.
-    - Appends an IN transaction to the ledger.
-    """
-    # 1. validate container type exists
     container_type = await container_type_repo.get_by_id(container_type_id)
     if container_type is None:
         raise UnknownContainerTypeError(
             f"Unknown container type '{container_type_id}'."
         )
 
-    # 2. get or create client
     client: Client = await client_repo.get_or_create_by_name(name)
 
-    # 3. check current balance for this client + container type
     current_balance = await balance_query.get_balance_for(client.id, container_type_id)
     if quantity > current_balance:
         raise InsufficientBalanceError(
@@ -93,18 +76,12 @@ async def return_containers(
             quantity=quantity,
         )
 
-    # 4. create and persist transaction
     tx = ContainerTransaction.receive(client, container_type_id, quantity)
     await tx_repo.save(tx)
     return tx
 
 
 async def get_current_balances(balance_query: BalanceQueryPort) -> list[Balance]:
-    """
-    Use case: list all non-zero balances per client + container type.
-    - Each balance is SUM(OUT) - SUM(IN).
-    - UI can show 'who owes how many of what'.
-    """
     return await balance_query.get_balances()
 
 
@@ -120,35 +97,27 @@ async def issue_items(
     balance_query: BalanceQueryPort,
     primary_category_id: str,
 ) -> Transaction:
-    """
-    Generic use case: issue items (OUT) to a client.
-
-    - Validates primary category is balanced.
-    - Validates all primary items belong to that category.
-    - Enforces OUT - IN >= 0 per (client, item) implicitly via later returns.
-    - Secondary items are informational only, no balance.
-    """
-    # 1. ensure primary category exists and is balanced
     category = await tracking_category_repo.get_by_id(primary_category_id)
     if category is None or not category.enforce_returns:
-        # domain-level safety: you should not use a non-balanced category as primary
         raise UnknownContainerTypeError(
             f"Invalid primary category '{primary_category_id}' for issuing items."
         )
 
-    # 2. get or create client
     client: Client = await client_repo.get_or_create_by_name(name)
 
-    # 2b. validate secondary items exist
     await _ensure_secondary_items_exist(tracking_item_repo, secondary_item_ids)
 
-    # 3. load and validate primary items
     line_items: list[TransactionLineItem] = []
     for item_id, qty in primary_item_quantities.items():
         if qty <= 0:
             continue
         item = await tracking_item_repo.get_by_id(item_id)
-        if item is None or item.category_id != primary_category_id:
+        # ensure item exists, belongs to category, and is active
+        if (
+            item is None
+            or item.category_id != primary_category_id
+            or not item.is_active
+        ):
             raise UnknownContainerTypeError(
                 f"Unknown or invalid tracking item '{item_id}' for category '{primary_category_id}'."
             )
@@ -165,7 +134,6 @@ async def issue_items(
             "At least one primary item with positive quantity is required."
         )
 
-    # 4. construct and persist transaction
     tx = Transaction.create(
         client=client,
         direction="OUT",
@@ -173,7 +141,7 @@ async def issue_items(
         secondary_items=secondary_item_ids,
         notes=notes,
     )
-    await tx_repo.save(tx)  # tx_repo will later handle generic Transaction
+    await tx_repo.save(tx)
     return tx
 
 
@@ -189,42 +157,34 @@ async def return_items(
     balance_query: BalanceQueryPort,
     primary_category_id: str,
 ) -> Transaction:
-    """
-    Generic use case: return items (IN) from a client.
-
-    - Validates primary category is balanced.
-    - Validates all primary items belong to that category.
-    - Enforces OUT - IN >= 0 per (client_id, tracking_item_id).
-    """
-    # 1. ensure primary category exists and is balanced
     category = await tracking_category_repo.get_by_id(primary_category_id)
     if category is None or not category.enforce_returns:
         raise UnknownContainerTypeError(
             f"Invalid primary category '{primary_category_id}' for returning items."
         )
 
-    # 2. get or create client
     client: Client = await client_repo.get_or_create_by_name(name)
 
-    # 2b. validate secondary items exist
     await _ensure_secondary_items_exist(tracking_item_repo, secondary_item_ids)
 
-    # 3. load items and enforce balance per item
     line_items: list[TransactionLineItem] = []
     for item_id, qty in primary_item_quantities.items():
         if qty <= 0:
             continue
         item = await tracking_item_repo.get_by_id(item_id)
-        if item is None or item.category_id != primary_category_id:
+        # ensure item exists, belongs to category, and is active
+        if (
+            item is None
+            or item.category_id != primary_category_id
+            or not item.is_active
+        ):
             raise UnknownContainerTypeError(
                 f"Unknown or invalid tracking item '{item_id}' for category '{primary_category_id}'."
             )
 
-        # For now, we reuse BalanceQueryPort, but in infra this will need
-        # to become item-based instead of container_type-based.
         current_balance = await balance_query.get_balance_for(
             client.id,
-            item_id,  # will be adapted once infra is generic
+            item_id,
         )
         if qty > current_balance:
             raise InsufficientBalanceError(
@@ -247,7 +207,6 @@ async def return_items(
             "At least one primary item with positive quantity is required."
         )
 
-    # 4. construct and persist transaction
     tx = Transaction.create(
         client=client,
         direction="IN",
@@ -257,3 +216,28 @@ async def return_items(
     )
     await tx_repo.save(tx)
     return tx
+
+
+async def soft_delete_tracking_item(
+    item_id: str,
+    tracking_item_repo: TrackingItemRepositoryPort,
+) -> None:
+    item = await tracking_item_repo.get_by_id(item_id)
+    if item is None:
+        return
+    item.is_active = False
+    await tracking_item_repo.save(item)
+
+
+async def list_tracking_categories(
+    tracking_category_repo: TrackingCategoryRepositoryPort,
+) -> list[TrackingCategory]:
+    return await tracking_category_repo.list_all()
+
+
+async def list_active_tracking_items(
+    category_id: str,
+    tracking_item_repo: TrackingItemRepositoryPort,
+) -> list[TrackingItem]:
+    items = await tracking_item_repo.list_all_by_category(category_id)
+    return [i for i in items if i.is_active]

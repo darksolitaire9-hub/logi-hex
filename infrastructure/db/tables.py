@@ -53,6 +53,7 @@ tracking_items_table = sa.Table(
         nullable=False,
     ),
     sa.Column("label", sa.String, nullable=False),
+    sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.true()),
 )
 
 transaction_line_items_table = sa.Table(

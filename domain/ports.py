@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from .entities import (
     Balance,
@@ -96,6 +96,13 @@ class TrackingItemRepositoryPort(ABC):
     @abstractmethod
     async def delete(self, item_id: str) -> None:
         """Delete a tracking item by id."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_by_category_and_label(  # new
+        self, category_id: str, label: str
+    ) -> Optional[TrackingItem]:
+        """Return a tracking item by (category_id, label), or None if missing."""
         raise NotImplementedError
 
 
