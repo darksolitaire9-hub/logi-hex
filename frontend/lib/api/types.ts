@@ -2,6 +2,11 @@
 
 export type Direction = "OUT" | "IN";
 
+export type Client = {
+  id: string;
+  name: string;
+};
+
 export interface ContainerType {
   id: string;
   label: string;

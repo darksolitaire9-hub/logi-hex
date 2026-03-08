@@ -31,6 +31,7 @@ const {
     config,
     contentItems,
     loadContentItems,
+    clientNames,
 } = useApp();
 
 // Global errors (field + submit)
@@ -107,8 +108,15 @@ const focusRing = computed(() =>
 
 // Suggestions (currently disabled)
 const filteredSuggestions = computed(() => {
-    const q = clientName.value.toLowerCase();
-    return []; // temporary no-suggestions fallback
+    const q = clientName.value.trim().toLowerCase();
+    if (!q) return clientNames.value.slice(0, 5);
+    return clientNames.value
+        .filter(
+            (n) =>
+                n.toLowerCase().includes(q) &&
+                n.toLowerCase() !== clientName.value.trim().toLowerCase(),
+        )
+        .slice(0, 5);
 });
 
 // validate client + selected primary quantity

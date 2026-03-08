@@ -5,6 +5,7 @@ import type {
   CreateContainerTypePayload,
   TrackingItem,
   CreateTrackingItemPayload,
+  Client,
 } from "./types";
 import { $fetch } from "ofetch";
 
@@ -91,4 +92,8 @@ export async function deleteTrackingItem(itemId: string): Promise<void> {
   await $fetch(`/api/tracking-items/${itemId}`, {
     method: "DELETE",
   });
+}
+
+export async function fetchClients(): Promise<Client[]> {
+  return await $fetch("/api/clients");
 }

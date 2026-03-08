@@ -6,6 +6,7 @@ import {
   createTrackingItem,
   deleteTrackingItem,
   logMovementApi,
+  fetchClients,
 } from "../../lib/api/logiHex";
 import type { TrackingItem, LogMovementPayload } from "../../lib/api/types";
 
@@ -17,6 +18,13 @@ type ClientBalance = {
   total: number;
   items: ClientItem[];
 };
+
+const clientNames = ref<string[]>([]);
+
+async function loadClientNames() {
+  const clients = await fetchClients();
+  clientNames.value = clients.map((c) => c.name);
+}
 
 // --- CONFIG (persisted) ---
 const CONFIG_KEY = "logi-hex-config";
@@ -137,6 +145,7 @@ async function loadSummary() {
     })),
   }));
   grandTotal.value = data.grand_total;
+  await loadClientNames();
 }
 
 // --- MOVEMENTS ---
@@ -151,6 +160,7 @@ export function useApp() {
     clientBalances,
     grandTotal,
     updateConfig,
+    clientNames,
 
     // primary container types
     containerTypes,

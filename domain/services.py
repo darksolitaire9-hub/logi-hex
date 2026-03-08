@@ -241,3 +241,9 @@ async def list_active_tracking_items(
 ) -> list[TrackingItem]:
     items = await tracking_item_repo.list_all_by_category(category_id)
     return [i for i in items if i.is_active]
+
+
+async def list_clients(
+    client_repo: ClientRepositoryPort,
+) -> list[Client]:
+    return await client_repo.list_all()

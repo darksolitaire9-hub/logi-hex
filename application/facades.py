@@ -1,6 +1,7 @@
 from domain import services
 from domain.entities import (
     Balance,
+    Client,
     ContainerType,
     SummaryResult,
     TrackingCategory,
@@ -223,3 +224,6 @@ class LogiFacade:
         except Exception:
             await self.uow.rollback()
             raise
+
+    async def list_clients(self) -> list[Client]:
+        return await services.list_clients(self.client_repo)
