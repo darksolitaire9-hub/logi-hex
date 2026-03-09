@@ -1,7 +1,7 @@
 [project]
 name = "logi-hex"
 version = "0.1.0"
-description = "Add your description here"
+description = "A tiny app for tracking things that come back — crates, kits, kegs, and more."
 requires-python = ">=3.12"
 dependencies = [
     "aiosqlite>=0.22.1",
