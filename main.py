@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from adapters.api import build_api_router
+from adapters.api.routes_auth import router as auth_router
 from domain.exceptions import InsufficientBalanceError, UnknownContainerTypeError
 from infrastructure.config import settings
 from infrastructure.db.config import init_db
@@ -27,6 +28,9 @@ app = FastAPI(
     description="Hexagonal container tracking API",
     version=settings.app_version,
     lifespan=lifespan,
+    docs_url=None if not settings.debug else "/docs",
+    redoc_url=None if not settings.debug else "/redoc",
+    openapi_url=None if not settings.debug else "/openapi.json",
 )
 
 # ---------- CORS ----------
@@ -59,6 +63,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # ---------- Routers ----------
+app.include_router(auth_router)
 app.include_router(build_api_router())  # ← was: include_router(api_router)
 
 if __name__ == "__main__":
