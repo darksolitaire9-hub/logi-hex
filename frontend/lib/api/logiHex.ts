@@ -9,6 +9,18 @@ import type {
 } from "./types";
 import { $fetch } from "ofetch";
 
+// --- AUTH ---
+export async function loginApi(
+  username: string,
+  password: string,
+): Promise<{ access_token: string; token_type: string }> {
+  return await $fetch("/api/auth/login", {
+    method: "POST",
+    body: new URLSearchParams({ username, password }),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  });
+}
+// ---- End of auth ----
 export async function fetchSummary(): Promise<SummaryResponse> {
   return await $fetch("/api/summary");
 }
