@@ -1,3 +1,4 @@
+// lib/api/logiHex.ts
 import type {
   SummaryResponse,
   LogMovementPayload,
@@ -5,33 +6,25 @@ import type {
   CreateContainerTypePayload,
   TrackingItem,
   CreateTrackingItemPayload,
+  CreateTrackingCategoryPayload,
+  TrackingCategory,
   Client,
 } from "./types";
-import { $fetch } from "ofetch";
 
-// --- AUTH ---
-export async function loginApi(
-  username: string,
-  password: string,
-): Promise<{ access_token: string; token_type: string }> {
-  return await $fetch("/api/auth/login", {
-    method: "POST",
-    body: new URLSearchParams({ username, password }),
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-  });
-}
-// ---- End of auth ----
+import { useApiClient } from "~/composables/useApiClient";
+// --- SUMMARY ---
 export async function fetchSummary(): Promise<SummaryResponse> {
-  return await $fetch("/api/summary");
+  return await useApiClient()("/api/summary");
 }
 
+// --- MOVEMENTS ---
 export async function logMovementApi(payload: LogMovementPayload) {
   const endpoint =
     payload.direction === "OUT"
       ? "/api/movements/issue"
       : "/api/movements/receive";
 
-  return await $fetch(endpoint, {
+  return await useApiClient()(endpoint, {
     method: "POST",
     body: {
       name: payload.clientName,
@@ -44,49 +37,35 @@ export async function logMovementApi(payload: LogMovementPayload) {
   });
 }
 
-// Legacy container-types API (kept for now in case anything still uses it)
+// --- CONTAINER TYPES ---
 export async function fetchContainerTypes(): Promise<ContainerType[]> {
-  return await $fetch("/api/container-types");
+  return await useApiClient()("/api/container-types");
 }
 
 export async function createContainerType(
   payload: CreateContainerTypePayload,
 ): Promise<ContainerType> {
-  return await $fetch("/api/container-types", {
+  return await useApiClient()("/api/container-types", {
     method: "POST",
     body: payload,
   });
 }
 
 // --- TRACKING CATEGORIES ---
-
-export type CreateTrackingCategoryPayload = {
-  id: string;
-  name: string;
-  enforce_returns: boolean;
-};
-
-export type TrackingCategory = {
-  id: string;
-  name: string;
-  enforce_returns: boolean;
-};
-
 export async function createTrackingCategory(
   payload: CreateTrackingCategoryPayload,
 ): Promise<TrackingCategory> {
-  return await $fetch("/api/tracking-categories", {
+  return await useApiClient()("/api/tracking-categories", {
     method: "POST",
     body: payload,
   });
 }
 
 // --- TRACKING ITEMS ---
-
 export async function fetchTrackingItems(
   categoryId: string,
 ): Promise<TrackingItem[]> {
-  return await $fetch("/api/tracking-items", {
+  return await useApiClient()("/api/tracking-items", {
     query: { category_id: categoryId },
   });
 }
@@ -94,18 +73,19 @@ export async function fetchTrackingItems(
 export async function createTrackingItem(
   payload: CreateTrackingItemPayload,
 ): Promise<TrackingItem> {
-  return await $fetch("/api/tracking-items", {
+  return await useApiClient()("/api/tracking-items", {
     method: "POST",
     body: payload,
   });
 }
 
 export async function deleteTrackingItem(itemId: string): Promise<void> {
-  await $fetch(`/api/tracking-items/${itemId}`, {
+  await useApiClient()(`/api/tracking-items/${itemId}`, {
     method: "DELETE",
   });
 }
 
+// --- CLIENTS ---
 export async function fetchClients(): Promise<Client[]> {
-  return await $fetch("/api/clients");
+  return await useApiClient()("/api/clients");
 }

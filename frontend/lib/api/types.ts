@@ -60,3 +60,17 @@ export type CreateTrackingItemPayload = {
   label: string;
   category_id: string;
 };
+
+// lib/api/types.ts
+export type CreateTrackingCategoryPayload = {
+  id: string;
+  name: string;
+  enforce_returns: boolean;
+};
+
+
+export type TrackingCategory = {
+  id: string;
+  name: string;
+  enforce_returns: boolean;
+};
