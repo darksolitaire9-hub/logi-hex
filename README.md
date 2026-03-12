@@ -329,6 +329,7 @@ DEBUG=true
 
 ```env
 API_URL=http://localhost:8000
+NUXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
 The defaults work out of the box for local development — you only need to change these if you use a different port, database path, or deploy to production.
@@ -428,5 +429,4 @@ See the [`LICENSE`](./LICENSE) file for details.
 Certain UI ideas and components are inspired by [shadcn/ui](https://ui.shadcn.com/) (MIT).
 Design mockups may include photos from [Unsplash](https://unsplash.com) under the Unsplash license.
 
-```
-```
+
