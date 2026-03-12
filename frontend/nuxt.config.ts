@@ -2,6 +2,7 @@
 const apiUrl = process.env.API_URL || "http://localhost:8000";
 
 export default defineNuxtConfig({
+  ssr: false,
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
   modules: ["@nuxt/ui"],
