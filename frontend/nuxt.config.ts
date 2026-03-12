@@ -8,7 +8,7 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css"],
   runtimeConfig: {
     public: {
-      apiBase: "/api",
+      API_URL: process.env.NUXT_PUBLIC_API_URL ?? "http://localhost:8000", // default
     },
   },
   nitro: {
