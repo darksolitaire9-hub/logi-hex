@@ -80,6 +80,7 @@ class SqlAlchemyGenericTransactionRepository(GenericTransactionRepositoryPort):
                 container_type_id=None,
                 direction=tx.direction,
                 quantity=0,
+                notes=tx.notes,
             )
         )
 
@@ -140,7 +141,57 @@ class SqlAlchemyGenericTransactionRepository(GenericTransactionRepositoryPort):
                     direction=tx_row.direction,
                     line_items=line_items,
                     secondary_items=secondary_items,
-                    notes=None,
+                    notes=tx_row.notes,
+                )
+            )
+
+        return transactions
+
+    async def get_by_client_id(self, client_id: str) -> List[Transaction]:
+        result = await self.session.execute(
+            sa.select(transactions_table)
+            .where(
+                transactions_table.c.client_id == client_id,
+                transactions_table.c.container_type_id.is_(None),
+            )
+            .order_by(transactions_table.c.timestamp.desc())
+        )
+        tx_rows = result.fetchall()
+        transactions: list[Transaction] = []
+
+        for tx_row in tx_rows:
+            li_result = await self.session.execute(
+                sa.select(transaction_line_items_table).where(
+                    transaction_line_items_table.c.transaction_id == tx_row.id
+                )
+            )
+            li_rows = li_result.fetchall()
+            line_items = [
+                TransactionLineItem(
+                    tracking_item_id=li_row.tracking_item_id,
+                    label=li_row.label,
+                    quantity=li_row.quantity,
+                )
+                for li_row in li_rows
+            ]
+
+            sec_result = await self.session.execute(
+                sa.select(transaction_secondary_items_table.c.tracking_item_id).where(
+                    transaction_secondary_items_table.c.transaction_id == tx_row.id
+                )
+            )
+            secondary_items = [row.tracking_item_id for row in sec_result.fetchall()]
+
+            transactions.append(
+                Transaction(
+                    id=tx_row.id,
+                    timestamp=tx_row.timestamp,
+                    client_id=tx_row.client_id,
+                    client_name=tx_row.client_name,
+                    direction=tx_row.direction,
+                    line_items=line_items,
+                    secondary_items=secondary_items,
+                    notes=tx_row.notes,
                 )
             )
 
