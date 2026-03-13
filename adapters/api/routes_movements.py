@@ -10,6 +10,8 @@ This is the newer, more generic flow that replaces the simple
 container-only flow for most use cases.
 """
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -64,6 +66,7 @@ class MovementResponse(BaseModel):
     notes: str | None
     primary_items: list[MovementPrimaryItem]
     secondary_items: list[str]
+    timestamp: datetime
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +104,7 @@ async def issue_movement(
         client_name=tx.client_name,
         direction=tx.direction,
         notes=tx.notes,
+        timestamp=tx.timestamp,
         primary_items=[
             MovementPrimaryItem(
                 tracking_item_id=li.tracking_item_id,
@@ -143,6 +147,7 @@ async def receive_movement(
         client_name=tx.client_name,
         direction=tx.direction,
         notes=tx.notes,
+        timestamp=tx.timestamp,
         primary_items=[
             MovementPrimaryItem(
                 tracking_item_id=li.tracking_item_id,
