@@ -133,6 +133,11 @@ class GenericTransactionRepositoryPort(ABC):
         """Return all generic transactions."""
         raise NotImplementedError
 
+    @abstractmethod
+    async def get_by_client_id(self, client_id: str) -> List[Transaction]:
+        """Return all generic transactions for a client, newest first."""
+        raise NotImplementedError
+
 
 class BalanceQueryPort(ABC):
     """Port for querying current balances per client + container type."""
