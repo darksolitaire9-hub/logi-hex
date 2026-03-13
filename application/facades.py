@@ -193,6 +193,9 @@ class LogiFacade:
     async def summary(self) -> SummaryResult:
         return await self.summary_query.get_summary()
 
+    async def get_client_transactions(self, client_id: str) -> list[Transaction]:
+        return await self.generic_tx_repo.get_by_client_id(client_id)
+
     async def list_container_types(self) -> list[ContainerType]:
         return await self.container_type_repo.list_all()
 
