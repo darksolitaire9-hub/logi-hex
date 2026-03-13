@@ -32,6 +32,7 @@ transactions_table = sa.Table(
     ),
     sa.Column("direction", sa.String, nullable=False),
     sa.Column("quantity", sa.Integer, nullable=False),
+    sa.Column("notes", sa.String, nullable=True),
 )
 
 tracking_categories_table = sa.Table(
