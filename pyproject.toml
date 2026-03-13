@@ -5,6 +5,7 @@ description = "A tiny app for tracking things that come back — crates, kits, k
 requires-python = ">=3.12"
 dependencies = [
     "aiosqlite>=0.22.1",
+    "alembic>=1.18.4",
     "bcrypt>=5.0.0",
     "fastapi>=0.133.1",
     "jinja2>=3.1.6",
