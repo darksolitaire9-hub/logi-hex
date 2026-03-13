@@ -338,10 +338,13 @@ The defaults work out of the box for local development — you only need to chan
 
 ```bash
 # from repo root
-uv sync
+1. uv sync
+2. alembic upgrade head
+
 
 # start the API server
-uv run main.py  
+uv run main.py
+
 ```
 
 API: `http://localhost:8000`

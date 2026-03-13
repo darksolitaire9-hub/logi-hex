@@ -10,8 +10,6 @@ from sqlalchemy.ext.asyncio import (
 
 from infrastructure.config import settings
 
-from .tables import metadata
-
 DATABASE_URL = settings.database_url
 
 
@@ -24,8 +22,9 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSe
 
 
 async def init_db() -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(metadata.create_all)
+    # Deprecated: schema is managed by Alembic migrations.
+    # Kept for backwards compatibility/tests; does nothing.
+    return None
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:

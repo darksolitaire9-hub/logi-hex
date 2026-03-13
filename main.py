@@ -10,7 +10,6 @@ from adapters.api import build_api_router
 from adapters.api.routes_auth import router as auth_router
 from domain.exceptions import InsufficientBalanceError, UnknownContainerTypeError
 from infrastructure.config import settings
-from infrastructure.db.config import init_db
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -18,7 +17,8 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await init_db()
+    # Database schema is managed by Alembic migrations.
+    # Run `alembic upgrade head` before starting the app.
     yield
 
 
