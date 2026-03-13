@@ -8,9 +8,26 @@ to unit/, integration/, and any future test layers automatically.
 import pytest
 from fastapi.testclient import TestClient
 
+from adapters.api.dependencies import get_current_user
 from infrastructure.db.config import engine
 from infrastructure.db.tables import metadata
 from main import app
+
+# ---------------------------------------------------------------------------
+# Auth bypass: skip JWT validation in all tests
+# ---------------------------------------------------------------------------
+
+
+async def _fake_current_user() -> str:
+    return "test-user"
+
+
+app.dependency_overrides[get_current_user] = _fake_current_user
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="function", autouse=True)

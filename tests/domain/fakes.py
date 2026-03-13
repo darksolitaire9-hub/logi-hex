@@ -130,8 +130,12 @@ class FakeGenericTxRepo(GenericTransactionRepositoryPort):
     async def save(self, tx: Transaction) -> None:
         self.saved.append(tx)
 
-    async def list_all(self) -> List[Transaction]:
+    async def list_all(self) -> list[Transaction]:
         return list(self.saved)
+
+    async def get_by_client_id(self, client_id: str) -> list[Transaction]:
+        # simple filter; enough for domain tests
+        return [tx for tx in self.saved if tx.client_id == client_id]
 
 
 class FakeBalanceQuery(BalanceQueryPort):
