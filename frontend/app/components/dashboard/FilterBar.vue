@@ -19,6 +19,9 @@ function clear() {
     emit("update:modelValue", "");
     inputRef.value?.focus();
 }
+
+defineExpose({ focus: () => inputRef.value?.focus() });
+
 </script>
 
 <template>

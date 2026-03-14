@@ -2,15 +2,14 @@
 import { computed, ref } from "vue";
 import { useVirtualizer } from "@tanstack/vue-virtual";
 import ClientCard from "~/components/dashboard/ClientCard.vue";
-
-type ClientBalance = {
-    clientName: string;
-    total: number;
-    items: Array<{ itemId: string | number; label: string; quantity: number }>;
-};
+import type { ClientBalance } from "~/types/client";
 
 const props = defineProps<{
     clients: ClientBalance[];
+}>();
+
+const emit = defineEmits<{
+    (e: "client-click", value: { clientId: string; clientName: string }): void;
 }>();
 
 const parentRef = ref<HTMLDivElement | null>(null);
@@ -36,6 +35,11 @@ const measureEl = (el: Element | null) => {
     if (!el) return;
     virtualizer.value.measureElement(el as HTMLElement);
 };
+
+function handleClientClick(payload: { clientName: string }) {
+    console.log("VirtualClientList client-click", payload);
+    emit("client-click", payload);
+}
 </script>
 
 <template>
@@ -65,7 +69,10 @@ const measureEl = (el: Element | null) => {
                 }"
                 role="listitem"
             >
-                <ClientCard :client="props.clients[vItem.index]!" />
+                <ClientCard
+                    :client="props.clients[vItem.index]!"
+                    @client-click="handleClientClick"
+                />
             </div>
         </div>
     </div>

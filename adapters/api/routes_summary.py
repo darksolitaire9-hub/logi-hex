@@ -36,6 +36,7 @@ class ClientBalanceEntry(BaseModel):
 
 
 class ClientSummary(BaseModel):
+    client_id: str
     client_name: str
     total_outstanding: int
     balances: list[ClientBalanceEntry]
@@ -82,6 +83,7 @@ async def get_summary(facade: LogiFacade = Depends(get_facade)):
     return SummaryResponse(
         clients=[
             ClientSummary(
+                client_id=c.client_id,
                 client_name=c.client_name,
                 total_outstanding=c.total_outstanding,
                 balances=[

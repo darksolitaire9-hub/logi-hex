@@ -1,51 +1,48 @@
 <script setup lang="ts">
-type ClientBalance = {
-    clientName: string;
-    total: number;
-    items: Array<{ itemId: string | number; label: string; quantity: number }>;
-};
+import type { ClientBalance } from "~/types/client";
 
-defineProps<{
+const props = defineProps<{
     client: ClientBalance;
+}>();
+
+const emit = defineEmits<{
+    (e: "client-click", value: { clientId: string; clientName: string }): void;
 }>();
 </script>
 
 <template>
-    <div
-        class="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] px-4 py-3.5 flex items-start gap-3 shadow-sm"
+    <button
+        type="button"
+        @click="
+            emit('client-click', {
+                clientId: props.client.clientId,
+                clientName: props.client.clientName,
+            })
+        "
+        :aria-label="`View transactions for ${props.client.clientName}`"
+        class="w-full text-left px-4 py-3 rounded-xl bg-white border border-[rgba(0,0,0,0.08)] hover:border-[rgba(0,0,0,0.18)] hover:shadow-sm active:scale-[0.99] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1a2e]"
     >
-        <div
-            class="w-9 h-9 rounded-full bg-[#f0f0f4] flex items-center justify-center shrink-0 mt-0.5"
-            aria-hidden="true"
-        >
-            <span class="text-sm font-semibold text-[#717182]">
-                {{ client.clientName.slice(0, 1).toUpperCase() }}
+        <div class="flex items-center justify-between gap-3 mb-2">
+            <span class="font-medium text-[#1a1a2e] text-sm truncate">
+                {{ props.client.clientName }}
+            </span>
+            <span
+                class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1a1a2e] text-white text-xs font-semibold"
+            >
+                {{ props.client.total }} out
             </span>
         </div>
-
-        <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2 mb-2">
-                <span class="text-[#1a1a2e] truncate font-medium">{{
-                    client.clientName
-                }}</span>
-                <span
-                    class="shrink-0 px-2 py-0.5 rounded-full bg-[#1a1a2e] text-white text-xs font-semibold"
-                    :aria-label="`${client.total} containers outstanding`"
+        <div class="flex flex-wrap gap-1.5">
+            <span
+                v-for="item in props.client.items"
+                :key="item.itemId"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f0f0f4] text-xs text-[#717182]"
+            >
+                {{ item.label }}
+                <span class="font-semibold text-[#1a1a2e]"
+                    >× {{ item.quantity }}</span
                 >
-                    {{ client.total }}
-                </span>
-            </div>
-
-            <div class="flex flex-wrap gap-1.5">
-                <span
-                    v-for="item in client.items"
-                    :key="item.itemId"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#f8f8fa] border border-[rgba(0,0,0,0.08)] text-xs text-[#1a1a2e]"
-                >
-                    <span class="font-semibold">{{ item.quantity }}</span>
-                    <span class="text-[#717182]">{{ item.label }}</span>
-                </span>
-            </div>
+            </span>
         </div>
-    </div>
+    </button>
 </template>

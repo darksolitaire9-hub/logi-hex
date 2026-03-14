@@ -24,6 +24,7 @@ export interface SummaryBalance {
 }
 
 export interface SummaryClient {
+  client_id: string;
   client_name: string;
   total_outstanding: number;
   balances: SummaryBalance[];
@@ -61,16 +62,39 @@ export type CreateTrackingItemPayload = {
   category_id: string;
 };
 
-// lib/api/types.ts
 export type CreateTrackingCategoryPayload = {
   id: string;
   name: string;
   enforce_returns: boolean;
 };
 
-
 export type TrackingCategory = {
   id: string;
   name: string;
   enforce_returns: boolean;
 };
+
+// ---------------------------------------------------------------------------
+// Client transactions
+// ---------------------------------------------------------------------------
+
+export interface ClientTransactionLineItem {
+  tracking_item_id: string;
+  label: string;
+  quantity: number;
+}
+
+export interface ClientTransaction {
+  transaction_id: string;
+  direction: Direction;
+  timestamp: string;
+  notes: string | null;
+  primary_items: ClientTransactionLineItem[];
+  secondary_items: string[];
+}
+
+export interface ClientTransactionListResponse {
+  client_id: string;
+  client_name: string;
+  transactions: ClientTransaction[];
+}

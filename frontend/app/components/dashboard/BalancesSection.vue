@@ -1,23 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
-import {
-    Layers,
-    Users,
-    Search,
-    X,
-    ArrowDownUp,
-    ChevronDown,
-} from "lucide-vue-next";
+import { computed, onBeforeUnmount, ref } from "vue";
+import { Layers, Users, Search } from "lucide-vue-next";
 import VirtualClientList from "~/components/dashboard/VirtualClientList.vue";
-import { AnimatePresence, Motion } from "motion-v";
+import FilterBar from "~/components/dashboard/FilterBar.vue";
+import SortDropdown from "~/components/dashboard/SortDropdown.vue";
+import type { ClientBalance } from "~/types/client";
 
 type SortKey = "total-desc" | "total-asc" | "name-asc" | "name-desc";
-
-type ClientBalance = {
-    clientName: string;
-    total: number;
-    items: Array<{ itemId: string | number; label: string; quantity: number }>;
-};
 
 const props = defineProps<{
     clients: ClientBalance[];
@@ -32,13 +21,10 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: "update:sort-key", value: SortKey): void;
     (e: "update:filter-query", value: string): void;
+    (e: "client-click", value: { clientId: string; clientName: string }): void;
 }>();
 
-const isClient = import.meta.client;
-
-const sortOpen = ref(false);
-const sortRef = ref<HTMLDivElement | null>(null);
-const filterRef = ref<HTMLInputElement | null>(null);
+const filterRef = ref<InstanceType<typeof FilterBar> | null>(null);
 
 const hasFilter = computed(() => props.filterQuery.trim().length > 0);
 const isFiltered = computed(
@@ -49,7 +35,6 @@ const isFiltered = computed(
 
 function setSortKey(k: SortKey) {
     emit("update:sort-key", k);
-    sortOpen.value = false;
 }
 
 function setFilterQuery(v: string) {
@@ -61,21 +46,9 @@ function clearFilter() {
     filterRef.value?.focus();
 }
 
-const onOutsideMouseDown = (e: MouseEvent) => {
-    const root = sortRef.value;
-    if (root && !root.contains(e.target as Node)) sortOpen.value = false;
-};
-
-watch(sortOpen, (open) => {
-    if (!isClient) return;
-    if (open) document.addEventListener("mousedown", onOutsideMouseDown);
-    else document.removeEventListener("mousedown", onOutsideMouseDown);
-});
-
-onBeforeUnmount(() => {
-    if (!isClient) return;
-    document.removeEventListener("mousedown", onOutsideMouseDown);
-});
+function handleClientClick(payload: { clientId: string; clientName: string }) {
+    emit("client-click", payload);
+}
 </script>
 
 <template>
@@ -91,7 +64,6 @@ onBeforeUnmount(() => {
             </h2>
 
             <div class="flex items-center gap-2">
-                <!-- Grand total badge -->
                 <div
                     v-if="props.grandTotal > 0"
                     class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1a1a2e] text-white text-sm"
@@ -101,96 +73,24 @@ onBeforeUnmount(() => {
                     <span>{{ props.grandTotal }} out</span>
                 </div>
 
-                <!-- Sort dropdown -->
-                <div
+                <SortDropdown
                     v-if="props.clients.length > 1"
-                    class="relative"
-                    ref="sortRef"
-                >
-                    <button
-                        @click="sortOpen = !sortOpen"
-                        :aria-label="`Sort: ${props.sortLabels[props.sortKey]}`"
-                        :aria-expanded="sortOpen"
-                        aria-haspopup="listbox"
-                        class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white hover:bg-[#f0f0f4] text-sm text-[#717182] hover:text-[#1a1a2e] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1a2e]"
-                    >
-                        <ArrowDownUp class="w-3.5 h-3.5" aria-hidden="true" />
-                        <span class="hidden sm:block">{{
-                            props.sortLabels[props.sortKey]
-                        }}</span>
-                        <ChevronDown
-                            class="w-3 h-3 transition-transform"
-                            :class="sortOpen ? 'rotate-180' : ''"
-                            aria-hidden="true"
-                        />
-                    </button>
-
-                    <!-- AnimatePresence stays mounted; v-if goes on Motion child. -->
-                    <AnimatePresence>
-                        <Motion
-                            v-if="sortOpen"
-                            :initial="{ opacity: 0, y: -6, scale: 0.97 }"
-                            :animate="{ opacity: 1, y: 0, scale: 1 }"
-                            :exit="{ opacity: 0, y: -4, scale: 0.97 }"
-                            :transition="{ duration: 0.12 }"
-                            as="ul"
-                            role="listbox"
-                            aria-label="Sort options"
-                            class="absolute right-0 top-full mt-1.5 w-40 bg-white border border-[rgba(0,0,0,0.1)] rounded-xl shadow-lg overflow-hidden z-20 py-1"
-                        >
-                            <li
-                                v-for="key in Object.keys(
-                                    props.sortLabels,
-                                ) as SortKey[]"
-                                :key="key"
-                                role="option"
-                                :aria-selected="props.sortKey === key"
-                                @click="setSortKey(key)"
-                                class="flex items-center justify-between px-3 py-2 text-sm cursor-pointer transition-colors"
-                                :class="
-                                    props.sortKey === key
-                                        ? 'bg-[#f0f0f4] text-[#1a1a2e] font-medium'
-                                        : 'text-[#717182] hover:bg-[#f8f8fa] hover:text-[#1a1a2e]'
-                                "
-                            >
-                                {{ props.sortLabels[key] }}
-                                <span
-                                    v-if="props.sortKey === key"
-                                    class="w-1.5 h-1.5 rounded-full bg-[#1a1a2e]"
-                                    aria-hidden="true"
-                                />
-                            </li>
-                        </Motion>
-                    </AnimatePresence>
-                </div>
+                    :sort-key="props.sortKey"
+                    :sort-labels="props.sortLabels"
+                    :disabled="props.clients.length <= 1"
+                    @update:sortKey="(k) => setSortKey(k)"
+                />
             </div>
         </div>
 
         <!-- Filter bar -->
         <div v-if="props.clients.length > 0" class="relative mb-3">
-            <Search
-                class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a0a0b0] pointer-events-none"
-                aria-hidden="true"
-            />
-            <input
+            <FilterBar
                 ref="filterRef"
-                type="search"
-                :value="props.filterQuery"
-                @input="
-                    setFilterQuery(($event.target as HTMLInputElement).value)
-                "
+                :model-value="props.filterQuery"
                 :placeholder="`Filter ${props.clients.length} client${props.clients.length !== 1 ? 's' : ''}…`"
-                aria-label="Filter clients"
-                class="w-full pl-8 pr-8 py-2 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white text-sm text-[#1a1a2e] placeholder:text-[#a0a0b0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a1a2e] transition-colors hover:border-[rgba(0,0,0,0.18)]"
+                @update:modelValue="setFilterQuery"
             />
-            <button
-                v-if="hasFilter"
-                @click="clearFilter"
-                aria-label="Clear filter"
-                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a0a0b0] hover:text-[#1a1a2e] transition-colors"
-            >
-                <X class="w-3.5 h-3.5" />
-            </button>
         </div>
 
         <!-- Filter hint -->
@@ -201,13 +101,13 @@ onBeforeUnmount(() => {
             aria-atomic="true"
         >
             Showing
-            <strong className="text-[#1a1a2e]">{{
+            <strong class="text-[#1a1a2e]">{{
                 props.processedClients.length
             }}</strong>
             of {{ props.clients.length }} clients
         </p>
 
-        <!-- Empty states / list -->
+        <!-- Empty: no clients at all -->
         <div
             v-if="props.clients.length === 0"
             class="flex flex-col items-center justify-center py-16 text-center"
@@ -224,6 +124,7 @@ onBeforeUnmount(() => {
             </p>
         </div>
 
+        <!-- Empty: filter has no matches -->
         <div
             v-else-if="props.processedClients.length === 0"
             class="flex flex-col items-center justify-center py-12 text-center"
@@ -247,8 +148,12 @@ onBeforeUnmount(() => {
             </button>
         </div>
 
+        <!-- Client list + footer -->
         <template v-else>
-            <VirtualClientList :clients="props.processedClients" />
+            <VirtualClientList
+                :clients="props.processedClients"
+                @client-click="handleClientClick"
+            />
 
             <div
                 class="mt-3 bg-[#f0f0f4] rounded-xl px-4 py-3 flex items-center justify-between"

@@ -5,15 +5,9 @@ import {
   logMovementApi,
 } from "../../lib/api/logiHex";
 import type { LogMovementPayload } from "../../lib/api/types";
+import type { ClientBalance } from "~/types/client";
 
 export type Direction = "OUT" | "IN";
-
-type ClientItem = { itemId: string | number; label: string; quantity: number };
-type ClientBalance = {
-  clientName: string;
-  total: number;
-  items: ClientItem[];
-};
 
 const clientBalances = ref<ClientBalance[]>([]);
 const grandTotal = ref(0);
@@ -27,6 +21,7 @@ async function loadClientNames() {
 async function loadSummary() {
   const data = await fetchSummary();
   clientBalances.value = data.clients.map((c) => ({
+    clientId: c.client_id,
     clientName: c.client_name,
     total: c.total_outstanding,
     items: c.balances.map((b) => ({

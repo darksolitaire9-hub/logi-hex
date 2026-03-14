@@ -9,9 +9,10 @@ import type {
   CreateTrackingCategoryPayload,
   TrackingCategory,
   Client,
+  ClientTransactionListResponse,
 } from "./types";
+import { useApiClient } from "../../app/composables/useApiClient";
 
-import { useApiClient } from "~/composables/useApiClient";
 // --- SUMMARY ---
 export async function fetchSummary(): Promise<SummaryResponse> {
   return await useApiClient()("/api/summary");
@@ -35,6 +36,18 @@ export async function logMovementApi(payload: LogMovementPayload) {
       note: payload.note,
     },
   });
+}
+
+// --- CLIENTS ---
+export async function fetchClients(): Promise<Client[]> {
+  return await useApiClient()("/api/clients");
+}
+
+// --- CLIENT TRANSACTIONS ---
+export async function fetchClientTransactions(
+  clientId: string,
+): Promise<ClientTransactionListResponse> {
+  return await useApiClient()(`/api/clients/${clientId}/transactions`);
 }
 
 // --- CONTAINER TYPES ---
@@ -83,9 +96,4 @@ export async function deleteTrackingItem(itemId: string): Promise<void> {
   await useApiClient()(`/api/tracking-items/${itemId}`, {
     method: "DELETE",
   });
-}
-
-// --- CLIENTS ---
-export async function fetchClients(): Promise<Client[]> {
-  return await useApiClient()("/api/clients");
 }
