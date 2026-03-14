@@ -10,8 +10,15 @@ import type {
   TrackingCategory,
   Client,
   ClientTransactionListResponse,
+  AppConfigResponse,
 } from "./types";
 import { useApiClient } from "../../app/composables/useApiClient";
+
+// --- CONFIGS ---
+
+export async function fetchConfig(): Promise<AppConfigResponse> {
+  return await useApiClient()("/api/config");
+}
 
 // --- SUMMARY ---
 export async function fetchSummary(): Promise<SummaryResponse> {

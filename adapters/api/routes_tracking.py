@@ -143,3 +143,23 @@ async def delete_tracking_item(
     remains in history.
     """
     await facade.delete_tracking_item(item_id)
+
+@router.get(
+    "/tracking-categories",
+    response_model=list[TrackingCategoryResponse],
+)
+async def list_tracking_categories(
+    facade: LogiFacade = Depends(get_facade),
+):
+    """
+    List all tracking categories (primary + secondary/tag categories).
+    """
+    categories = await facade.list_tracking_categories()
+    return [
+        TrackingCategoryResponse(
+            id=c.id,
+            name=c.name,
+            enforce_returns=c.enforce_returns,
+        )
+        for c in categories
+    ]

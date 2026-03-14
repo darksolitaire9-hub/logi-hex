@@ -1,9 +1,17 @@
 <script setup lang="ts">
+import { onMounted } from "vue";
 import { Trash2, Plus, Tags } from "lucide-vue-next";
-import { useApp } from "~/composables/useApp";
+import { useConfig } from "~/composables/useConfig";
+import { useContentItems } from "~/composables/useContentItems";
 import ItemListEditor from "~/components/items/ItemListEditor.vue";
 
-const { contentItems, addContentItem, removeContentItem, config } = useApp();
+const { config } = useConfig();
+const { contentItems, addContentItem, removeContentItem, loadContentItems } =
+    useContentItems();
+
+onMounted(async () => {
+    await loadContentItems();
+});
 
 function onAddContent(label: string): string | void {
     const trimmed = label.trim();
@@ -25,7 +33,6 @@ function onDeleteContent(id: string) {
 </script>
 
 <template>
-
     <ItemListEditor
         :title="config.contentCategoryName"
         description="Content tags are optional labels you can attach to any movement."

@@ -9,6 +9,10 @@ import CommandPalette from "~/components/palette/CommandPalette.vue";
 import LogModal from "~/components/log/LogModal.vue";
 import SuccessBanner from "~/components/common/SuccessBanner.vue";
 
+import { useConfig } from "~/composables/useConfig";
+
+const { hydrateConfigFromBackend } = useConfig();
+
 const route = useRoute();
 const { config } = useApp();
 
@@ -27,7 +31,7 @@ const handler = (e: KeyboardEvent) => {
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
     if (!import.meta.client) return;
     document.addEventListener("keydown", handler);
 });

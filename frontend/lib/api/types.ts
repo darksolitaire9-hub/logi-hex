@@ -7,6 +7,14 @@ export type Client = {
   name: string;
 };
 
+export interface AppConfigResponse {
+  primary_category_id: string | null;
+  primary_category_name: string | null;
+  content_category_id: string | null;
+  content_category_name: string | null;
+  is_setup_complete: boolean;
+}
+
 export interface ContainerType {
   id: string;
   label: string;

@@ -37,7 +37,6 @@ const measureEl = (el: Element | null) => {
 };
 
 function handleClientClick(payload: { clientName: string }) {
-    console.log("VirtualClientList client-click", payload);
     emit("client-click", payload);
 }
 </script>

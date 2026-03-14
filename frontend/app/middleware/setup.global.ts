@@ -1,4 +1,6 @@
-export default defineNuxtRouteMiddleware((to) => {
+import { useConfig } from "~/composables/useConfig";
+
+export default defineNuxtRouteMiddleware(async (to) => {
   const { isAuthenticated } = useAuth();
 
   // Auth guard
@@ -14,8 +16,10 @@ export default defineNuxtRouteMiddleware((to) => {
     return;
   }
 
-  // Setup guard — only for authenticated users
-  const { config } = useApp();
+  // Setup guard — now using backend config
+  const { config, hydrateConfigFromBackend } = useConfig();
+  await hydrateConfigFromBackend();
+
   const isSetupComplete = config.value.isSetupComplete;
   const isSetupRoute = to.path === "/setup";
 
