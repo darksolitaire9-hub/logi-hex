@@ -165,7 +165,7 @@ const allItems = computed<ResultItem[]>(() => {
             sublabel: "Content tag · informational",
             icon: Tags,
             accentColor: "purple",
-            action: () => run(() => router.push("/items/content")),
+            action: () => run(() => router.push("/content")),
         });
     }
 
