@@ -1,4 +1,6 @@
-from typing import List
+"""
+infrastructure/repositories/clients.py
+"""
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,22 +14,54 @@ class SqlAlchemyClientRepository(ClientRepositoryPort):
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_or_create_by_name(self, name: str) -> Client:
-        normalized = name.lower().strip()
+    async def save(self, client: Client) -> None:
+        existing = await self.get_by_id(client.workspace_id, client.id)
+        if existing is None:
+            await self.session.execute(
+                clients_table.insert().values(
+                    id=client.id,
+                    workspace_id=client.workspace_id,
+                    name=client.name,
+                )
+            )
+        # clients are immutable after creation — name is the identity
+
+    async def get_by_id(self, workspace_id: str, client_id: str) -> Client | None:
         result = await self.session.execute(
-            sa.select(clients_table).where(clients_table.c.name == normalized)
+            sa.select(clients_table).where(
+                clients_table.c.id == client_id,
+                clients_table.c.workspace_id == workspace_id,
+            )
         )
         row = result.first()
-        if row is not None:
-            return Client(id=row.id, name=row.name)
+        if row is None:
+            return None
+        return _row_to_client(row)
 
-        client = Client.from_name(name)
-        await self.session.execute(
-            clients_table.insert().values(id=client.id, name=client.name)
+    async def get_by_name(self, workspace_id: str, name: str) -> Client | None:
+        result = await self.session.execute(
+            sa.select(clients_table).where(
+                clients_table.c.workspace_id == workspace_id,
+                clients_table.c.name == name.lower().strip(),
+            )
         )
-        return client
+        row = result.first()
+        if row is None:
+            return None
+        return _row_to_client(row)
 
-    async def list_all(self) -> List[Client]:
-        result = await self.session.execute(sa.select(clients_table))
-        rows = result.fetchall()
-        return [Client(id=row.id, name=row.name) for row in rows]
+    async def list_all(self, workspace_id: str) -> list[Client]:
+        result = await self.session.execute(
+            sa.select(clients_table)
+            .where(clients_table.c.workspace_id == workspace_id)
+            .order_by(clients_table.c.name)
+        )
+        return [_row_to_client(row) for row in result.fetchall()]
+
+
+def _row_to_client(row: sa.Row) -> Client:
+    return Client(
+        id=row.id,
+        workspace_id=row.workspace_id,
+        name=row.name,
+    )
