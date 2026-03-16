@@ -1,195 +1,303 @@
+"""
+domain/entities.py — Core domain entities for logi-hex.
+
+All entities use the Ubiquitous Language defined in domain/language.py.
+No legacy ContainerType, ContentType, or ContainerTransaction here.
+"""
+
+import hashlib
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Literal
+from datetime import datetime, timezone
+from decimal import Decimal
 from uuid import uuid4
 
+from domain.language import (
+    LOW_STOCK_THRESHOLD,
+    CorrectionReason,
+    MovementDirection,
+    StockState,
+    WorkspaceMode,
+)
 
-@dataclass
-class ContainerType:
-    id: str  # e.g. "white", "round", "glass"
-    label: str  # e.g. "White Box", "Round Box", "Big Glass"
-
-
-@dataclass
-class ContentType:
-    id: str  # e.g. "frozen", "fresh"
-    label: str  # e.g. "Frozen", "Fresh"
+# ── Workspace ────────────────────────────────────────────────────────────────
 
 
 @dataclass
-class Client:
-    id: str  # auto-generated from name e.g. "cshin"
-    name: str  # normalized lowercase e.g. "shivam"
-
-    @classmethod
-    def from_name(cls, name: str) -> "Client":
-        norm = name.lower().strip().replace(" ", "").replace("-", "")
-        client_id = f"c{norm[:4].zfill(3)}"
-        return cls(id=client_id, name=name.lower().strip())
-
-
-@dataclass
-class TrackingCategory:
+class Workspace:
     """
-    User-defined category of things to track.
-
-    Examples:
-    - id="boxes", name="Boxes", is_balanced=True
-    - id="food", name="Food", is_balanced=False (informational only)
+    One isolated notebook of movements.
+    Mode is set on creation and cannot be changed.
     """
 
     id: str
     name: str
-    enforce_returns: bool
+    mode: WorkspaceMode
+    owner_user_id: str
+    created_at: datetime
+
+    @classmethod
+    def create(
+        cls,
+        name: str,
+        mode: WorkspaceMode,
+        owner_user_id: str,
+    ) -> "Workspace":
+        return cls(
+            id=uuid4().hex,
+            name=name.strip(),
+            mode=mode,
+            owner_user_id=owner_user_id,
+            created_at=datetime.now(timezone.utc),
+        )
+
+
+# ── Client ───────────────────────────────────────────────────────────────────
 
 
 @dataclass
-class TrackingItem:
+class Client:
     """
-    Item within a tracking category.
-
-    Examples:
-    - id="red-box", category_id="boxes", label="Red Box"
-    - id="salad", category_id="food", label="Salad"
+    Person or place you Send items to. Accounts mode only.
+    ID is derived from workspace_id + normalised name — collision-safe.
     """
 
     id: str
-    category_id: str
+    workspace_id: str
+    name: str  # normalised: lowercase, stripped
+
+    @classmethod
+    def create(cls, workspace_id: str, name: str) -> "Client":
+        normalised = name.lower().strip()
+        client_id = hashlib.md5(f"{workspace_id}:{normalised}".encode()).hexdigest()[
+            :16
+        ]
+        return cls(id=client_id, workspace_id=workspace_id, name=normalised)
+
+
+# ── Item Group ───────────────────────────────────────────────────────────────
+
+
+@dataclass
+class ItemGroup:
+    """
+    A category that groups related Items.
+    V1: purely organisational — no rules enforced per group.
+    """
+
+    id: str
+    workspace_id: str
+    name: str
+
+    @classmethod
+    def create(cls, workspace_id: str, name: str) -> "ItemGroup":
+        return cls(
+            id=uuid4().hex,
+            workspace_id=workspace_id,
+            name=name.strip(),
+        )
+
+
+# ── Item ─────────────────────────────────────────────────────────────────────
+
+
+@dataclass
+class Item:
+    """
+    Anything being tracked — Coke, Steel Box, Salmon, etc.
+    Belongs to one workspace and one ItemGroup.
+    """
+
+    id: str
+    workspace_id: str
+    group_id: str
     label: str
+    unit: str  # free text: pcs, kg, L, box, etc.
     is_active: bool = True
 
+    @classmethod
+    def create(
+        cls,
+        workspace_id: str,
+        group_id: str,
+        label: str,
+        unit: str,
+    ) -> "Item":
+        return cls(
+            id=uuid4().hex,
+            workspace_id=workspace_id,
+            group_id=group_id,
+            label=label.strip(),
+            unit=unit.strip(),
+        )
+
+    def archive(self) -> None:
+        """Mark item as archived — blocks new movements."""
+        self.is_active = False
+
+    def reactivate(self) -> None:
+        self.is_active = True
+
+
+# ── Tag ──────────────────────────────────────────────────────────────────────
+
+
+@dataclass
+class Tag:
+    """
+    A filter label for items (and optionally movements).
+    e.g. frozen, urgent, drinks, takeaway.
+    """
+
+    id: str
+    workspace_id: str
+    name: str  # normalised lowercase
+    colour: str | None = None
+
+    @classmethod
+    def create(
+        cls,
+        workspace_id: str,
+        name: str,
+        colour: str | None = None,
+    ) -> "Tag":
+        return cls(
+            id=uuid4().hex,
+            workspace_id=workspace_id,
+            name=name.strip().lower(),
+            colour=colour,
+        )
+
+
+# ── Movement ─────────────────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
-class TransactionLineItem:
+class MovementLineItem:
     """
-    One primary tracked item within a transaction, with quantity.
+    One item in a movement with its quantity.
 
-    This is where balances are enforced for balanced categories.
+    Quantity semantics:
+    - SEND / RECEIVE / USE: always positive (service handles sign in math)
+    - CORRECT: delta = target - stock_before_correction (can be negative)
     """
 
-    tracking_item_id: str
+    item_id: str
     label: str
-    quantity: int
+    quantity: Decimal
 
 
 @dataclass(frozen=True)
-class ContainerTransaction:
-    id: str
-    timestamp: datetime
-    client_id: str
-    client_name: str
-    container_type_id: str
-    direction: Literal["OUT", "IN"]
-    quantity: int
-    content_type_ids: list[str] = field(default_factory=list)
-    note: str | None = None
-
-    @classmethod
-    def issue(
-        cls,
-        client: Client,
-        container_type_id: str,
-        quantity: int,
-        content_type_ids: list[str] | None = None,
-        note: str | None = None,
-    ) -> "ContainerTransaction":
-        return cls(
-            id=uuid4().hex,
-            timestamp=datetime.now(),
-            client_id=client.id,
-            client_name=client.name,
-            container_type_id=container_type_id,
-            direction="OUT",
-            quantity=quantity,
-            content_type_ids=content_type_ids or [],
-            note=note,
-        )
-
-    @classmethod
-    def receive(
-        cls,
-        client: Client,
-        container_type_id: str,
-        quantity: int,
-        content_type_ids: list[str] | None = None,
-        note: str | None = None,
-    ) -> "ContainerTransaction":
-        return cls(
-            id=uuid4().hex,
-            timestamp=datetime.now(),
-            client_id=client.id,
-            client_name=client.name,
-            container_type_id=container_type_id,
-            direction="IN",
-            quantity=quantity,
-            content_type_ids=content_type_ids or [],
-            note=note,
-        )
-
-
-@dataclass(frozen=True)
-class Transaction:
+class Movement:
     """
-    Generic transaction that can contain multiple primary line items
-    and optional secondary (informational) items.
+    A single logged action. Immutable — never updated or deleted.
 
-    Direction semantics remain:
-    - OUT = issued / going out
-    - IN  = returned / coming in
+    Accounts mode uses: SEND, COLLECT
+    Inventory mode uses: RECEIVE, USE, CORRECT
     """
 
     id: str
+    workspace_id: str
+    direction: MovementDirection
     timestamp: datetime
-    client_id: str
-    client_name: str
-    direction: Literal["OUT", "IN"]
-    line_items: list[TransactionLineItem]
-    secondary_items: list[str]  # tracking_item_ids of secondary category
+    line_items: list[MovementLineItem]
+    client_id: str | None = None  # Accounts mode
+    client_name: str | None = None  # Accounts mode (denormalised for history)
+    correction_reason: CorrectionReason | None = None  # CORRECT only
+    tag_ids: list[str] = field(default_factory=list)
     notes: str | None = None
 
     @classmethod
     def create(
         cls,
-        client: "Client",
-        direction: Literal["OUT", "IN"],
-        line_items: list[TransactionLineItem],
-        secondary_items: list[str] | None = None,
+        workspace_id: str,
+        direction: MovementDirection,
+        line_items: list[MovementLineItem],
+        client_id: str | None = None,
+        client_name: str | None = None,
+        correction_reason: CorrectionReason | None = None,
+        tag_ids: list[str] | None = None,
         notes: str | None = None,
-    ) -> "Transaction":
+    ) -> "Movement":
         return cls(
             id=uuid4().hex,
-            timestamp=datetime.now(),
-            client_id=client.id,
-            client_name=client.name,
+            workspace_id=workspace_id,
             direction=direction,
+            timestamp=datetime.now(timezone.utc),
             line_items=line_items,
-            secondary_items=secondary_items or [],
+            client_id=client_id,
+            client_name=client_name,
+            correction_reason=correction_reason,
+            tag_ids=tag_ids or [],
             notes=notes,
         )
 
 
+# ── Query Result Objects ──────────────────────────────────────────────────────
+# These are returned from query ports — not stored directly in DB.
+
+
 @dataclass
-class Balance:
+class StillOutEntry:
+    """How many of one item a client Still Out (Accounts mode)."""
+
+    item_id: str
+    item_label: str
+    unit: str
+    quantity: Decimal
+
+
+@dataclass
+class ClientStillOut:
+    """Per-client Still Out summary (Accounts dashboard row)."""
+
     client_id: str
     client_name: str
-    container_type_id: str
-    container_label: str
-    balance: int  # SUM(OUT) - SUM(IN) — positive means client owes you
+    entries: list[StillOutEntry] = field(default_factory=list)
+
+    @property
+    def total(self) -> Decimal:
+        return sum((e.quantity for e in self.entries), Decimal("0"))
+
+    @property
+    def is_settled(self) -> bool:
+        return self.total == Decimal("0")
 
 
 @dataclass
-class ClientBalanceSummary:
-    """Per-client summary: all non-zero box balances and their total."""
+class AccountsSummary:
+    """Full Accounts dashboard result."""
 
-    client_id: str
-    client_name: str
-    total_outstanding: int
-    balances: list[Balance] = field(default_factory=list)
+    clients: list[ClientStillOut] = field(default_factory=list)
+
+    @property
+    def grand_total(self) -> Decimal:
+        return sum((c.total for c in self.clients), Decimal("0"))
 
 
 @dataclass
-class SummaryResult:
-    """Top-level summary: all clients with outstanding boxes + grand total."""
+class ItemStock:
+    """Current stock for one item (Inventory dashboard row)."""
 
-    clients: list[ClientBalanceSummary] = field(default_factory=list)
-    grand_total: int = 0
+    item_id: str
+    item_label: str
+    unit: str
+    group_id: str
+    group_name: str
+    in_stock: Decimal
+    tag_ids: list[str] = field(default_factory=list)
+    has_corrections: bool = False
+
+    @property
+    def stock_state(self) -> StockState:
+        if self.in_stock <= Decimal("0"):
+            return StockState.EMPTY
+        if self.in_stock < Decimal(str(LOW_STOCK_THRESHOLD)):
+            return StockState.LOW
+        return StockState.IN_STOCK
+
+
+@dataclass
+class InventorySummary:
+    """Full Inventory dashboard result."""
+
+    items: list[ItemStock] = field(default_factory=list)
