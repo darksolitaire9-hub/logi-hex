@@ -1,49 +1,39 @@
-# composition/container.py
+"""
+composition/container.py — Dependency injection wiring for logi-hex.
+
+Builds a LogiFacade from a single AsyncSession.
+Used as a FastAPI dependency via get_facade().
+"""
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.facades import LogiFacade
 from infrastructure.db.config import get_session
-from infrastructure.queries.balances import SqlAlchemyBalanceQuery
-from infrastructure.queries.summary import SqlAlchemySummaryQuery
+from infrastructure.queries.accounts import SqlAlchemyAccountsQuery
+from infrastructure.queries.stock import SqlAlchemyStockQuery
 from infrastructure.repositories.clients import SqlAlchemyClientRepository
-from infrastructure.repositories.container_types import (
-    SqlAlchemyContainerTypeRepository,
+from infrastructure.repositories.items import (
+    SqlAlchemyItemGroupRepository,
+    SqlAlchemyItemRepository,
+    SqlAlchemyTagRepository,
 )
-from infrastructure.repositories.tracking import (
-    SqlAlchemyTrackingCategoryRepository,
-    SqlAlchemyTrackingItemRepository,
-)
-from infrastructure.repositories.transactions import (
-    SqlAlchemyGenericTransactionRepository,
-    SqlAlchemyTransactionRepository,
-)
+from infrastructure.repositories.movements import SqlAlchemyMovementRepository
+from infrastructure.repositories.workspaces import SqlAlchemyWorkspaceRepository
 from infrastructure.uow import SqlAlchemyUnitOfWork
 
 
 async def get_facade(
     session: AsyncSession = Depends(get_session),
 ) -> LogiFacade:
-    client_repo = SqlAlchemyClientRepository(session)
-    container_type_repo = SqlAlchemyContainerTypeRepository(session)
-    tx_repo = SqlAlchemyTransactionRepository(session)
-    balance_query = SqlAlchemyBalanceQuery(session)
-    summary_query = SqlAlchemySummaryQuery(session)
-    uow = SqlAlchemyUnitOfWork(session)
-
-    tracking_category_repo = SqlAlchemyTrackingCategoryRepository(session)
-    tracking_item_repo = SqlAlchemyTrackingItemRepository(session)
-    generic_tx_repo = SqlAlchemyGenericTransactionRepository(session)
-
     return LogiFacade(
-        client_repo=client_repo,
-        container_type_repo=container_type_repo,
-        tx_repo=tx_repo,
-        balance_query=balance_query,
-        summary_query=summary_query,
-        uow=uow,
-        tracking_category_repo=tracking_category_repo,
-        tracking_item_repo=tracking_item_repo,
-        generic_tx_repo=generic_tx_repo,
+        workspace_repo=SqlAlchemyWorkspaceRepository(session),
+        client_repo=SqlAlchemyClientRepository(session),
+        group_repo=SqlAlchemyItemGroupRepository(session),
+        item_repo=SqlAlchemyItemRepository(session),
+        tag_repo=SqlAlchemyTagRepository(session),
+        movement_repo=SqlAlchemyMovementRepository(session),
+        accounts_query=SqlAlchemyAccountsQuery(session),
+        stock_query=SqlAlchemyStockQuery(session),
+        uow=SqlAlchemyUnitOfWork(session),
     )
