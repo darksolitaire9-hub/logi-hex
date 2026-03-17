@@ -1,22 +1,28 @@
 """
-domain/exceptions.py — Shim module re-exporting from domain.exceptions package.
+domain/exceptions/__init__.py — Domain exceptions public API for logi-hex.
 
-Kept so all existing imports continue to work after modularization:
+This is the ONLY import path consumers should use:
 
     from domain.exceptions import InsufficientStillOutError
-    from domain.exceptions import CorrectionReasonRequiredError
+    from domain.exceptions import InsufficientStockError
 
-Do not add new definitions here. Add them to the appropriate submodule
-under domain/exceptions/ and re-export from domain/exceptions/__init__.py.
+Submodules (shared, accounts, inventory) are implementation detail.
+Do not import from them directly outside of domain/exceptions/.
+
+Message language: docs/LANGUAGE.md — Error messages.
 """
 
-from domain.exceptions import (  # type: ignore[import-not-found]
-    ArchivedItemError,
+from .accounts import (
     ClientNotFoundError,
-    CorrectionReasonRequiredError,
-    EmptyMovementError,
     InsufficientStillOutError,
+)
+from .inventory import (
+    CorrectionReasonRequiredError,
     InsufficientStockError,
+)
+from .shared import (
+    ArchivedItemError,
+    EmptyMovementError,
     ItemGroupNotFoundError,
     ItemNotFoundError,
     TagNotFoundError,
@@ -25,6 +31,7 @@ from domain.exceptions import (  # type: ignore[import-not-found]
 )
 
 __all__ = [
+    # Shared
     "WorkspaceNotFoundError",
     "WorkspaceModeMismatchError",
     "ArchivedItemError",
@@ -32,8 +39,10 @@ __all__ = [
     "ItemNotFoundError",
     "ItemGroupNotFoundError",
     "TagNotFoundError",
+    # Accounts
     "InsufficientStillOutError",
     "ClientNotFoundError",
+    # Inventory
     "InsufficientStockError",
     "CorrectionReasonRequiredError",
 ]
