@@ -1,14 +1,3 @@
-"""
-application/facades — LogiFacade assembled from focused mixins.
-
-Usage:
-    from application.facades import LogiFacade
-
-Call site is identical to the old flat file:
-    facade.send_items(...)
-    facade.receive_stock(...)
-"""
-
 from application.facades._base import FacadeBase
 from application.facades.accounts import AccountsMixin
 from application.facades.clients import ClientsMixin
@@ -21,16 +10,15 @@ from application.facades.workspaces import WorkspacesMixin
 
 class LogiFacade(
     WorkspacesMixin,
-    ClientsMixin,
-    ItemsMixin,
-    TagsMixin,
     AccountsMixin,
     InventoryMixin,
     MovementsMixin,
+    ItemsMixin,
+    TagsMixin,
+    ClientsMixin,
     FacadeBase,
 ):
-    """
-    Single entry point for all application operations.
+    """Entry point for all application operations.
 
     Composed from focused mixins — one per domain area.
     Owns no logic. Delegates everything to domain services via ports.

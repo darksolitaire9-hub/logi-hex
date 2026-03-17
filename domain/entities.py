@@ -87,6 +87,7 @@ class ItemGroup:
     id: str
     workspace_id: str
     name: str
+    
 
     @classmethod
     def create(cls, workspace_id: str, name: str) -> "ItemGroup":

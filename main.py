@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse, Response
 
 from adapters.api import build_api_router
 from adapters.api.routes_auth import router as auth_router
-from domain.exceptions import InsufficientBalanceError, UnknownContainerTypeError
 from infrastructure.config import settings
 
 logger = logging.getLogger(__name__)
@@ -47,23 +46,6 @@ app.add_middleware(
 async def preflight_handler(rest_of_path: str) -> Response:
     # Let CORSMiddleware attach CORS headers; keep OPTIONS logic minimal.
     return Response(status_code=204)
-
-
-# ---------- Exception handlers ----------
-@app.exception_handler(UnknownContainerTypeError)
-async def unknown_container_type_handler(
-    request: Request,
-    exc: UnknownContainerTypeError,
-):
-    return JSONResponse(status_code=422, content={"detail": str(exc)})
-
-
-@app.exception_handler(InsufficientBalanceError)
-async def insufficient_balance_handler(
-    request: Request,
-    exc: InsufficientBalanceError,
-):
-    return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
 @app.exception_handler(Exception)

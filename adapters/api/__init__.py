@@ -8,26 +8,24 @@ endpoints under the /api prefix.
 
 from fastapi import APIRouter
 
-from adapters.api.routes_clients import router as clients_router
-from adapters.api.routes_config import router as config_router
-from adapters.api.routes_containers import router as containers_router
 from adapters.api.routes_movements import router as movements_router
-from adapters.api.routes_summary import router as summary_router
-from adapters.api.routes_tracking import router as tracking_router
+
+# from adapters.api.routes_items import router as items_router
+# from adapters.api.routes_workspaces import router as workspaces_router
 
 
 def build_api_router() -> APIRouter:
-    """
-    Composes all domain-specific routers into a single root router.
+    """Factory used by main.py to build the API router."""
+    router = APIRouter(prefix="/api")
 
-    To add a new domain area, create a new routes_*.py file and
-    include_router it here.
-    """
-    root = APIRouter()
-    root.include_router(containers_router)
-    root.include_router(movements_router)
-    root.include_router(tracking_router)
-    root.include_router(summary_router)
-    root.include_router(clients_router)
-    root.include_router(config_router)
-    return root
+    router.include_router(movements_router)
+    # router.include_router(items_router)
+    # router.include_router(workspaces_router)
+
+    return router
+
+
+# Optional convenience: module-level router
+router = build_api_router()
+
+__all__ = ["build_api_router", "router"]

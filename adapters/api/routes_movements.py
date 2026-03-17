@@ -1,160 +1,63 @@
-"""
-Generic rich movement API routes.
+# adapters/api/routes_movements.py
 
-Handles the rich movement flow where:
-- Primary items are tracked items (with balance enforcement)
-- Secondary items are informational tags (e.g. food content types)
-- Notes can be attached to each movement
+from fastapi import APIRouter, Depends, HTTPException, status
 
-This is the newer, more generic flow that replaces the simple
-container-only flow for most use cases.
-"""
-
-from datetime import datetime
-
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-
+from adapters.api.dependencies import get_current_workspace, get_facade
+from adapters.api.mappers.movements import movement_to_out
+from adapters.api.schemas.movements_common import MovementOut
+from adapters.api.schemas.movements_send import SendMovementIn
+from adapters.api.utils.movements import aggregate_quantities, load_mapper_context
 from application.facades import LogiFacade
-from domain.exceptions import InsufficientBalanceError, UnknownContainerTypeError
+from domain.exceptions import (
+    ArchivedItemError,
+    EmptyMovementError,
+    WorkspaceModeMismatchError,
+)
 
-from .dependencies import get_facade
-
-router = APIRouter(prefix="/api")
-
-
-# ---------------------------------------------------------------------------
-# Request models
-# ---------------------------------------------------------------------------
+router = APIRouter(prefix="/workspaces/{workspace_id}/movements", tags=["movements"])
 
 
-class LogContainerMovementRequest(BaseModel):
-    """
-    Request body for a rich movement (issue or receive).
-
-    primary_category_id identifies the category whose items are the
-    primary, balance-enforced items (e.g. "containers").
-    container_type_id maps to the tracking item id within that category
-    (e.g. "white" in "containers" category).
-    content_type_ids are informational secondary tags (no balance enforced).
-    """
-
-    name: str
-    primary_category_id: str
-    container_type_id: str
-    quantity: int = Field(..., gt=0)
-    content_type_ids: list[str] = []
-    note: str | None = None
-
-
-# ---------------------------------------------------------------------------
-# Response models
-# ---------------------------------------------------------------------------
-
-
-class MovementPrimaryItem(BaseModel):
-    tracking_item_id: str
-    label: str
-    quantity: int
-
-
-class MovementResponse(BaseModel):
-    transaction_id: str
-    client_id: str
-    client_name: str
-    direction: str
-    notes: str | None
-    primary_items: list[MovementPrimaryItem]
-    secondary_items: list[str]
-    timestamp: datetime
-
-
-# ---------------------------------------------------------------------------
-# Endpoints
-# ---------------------------------------------------------------------------
-
-
-@router.post("/movements/issue", status_code=201, response_model=MovementResponse)
-async def issue_movement(
-    body: LogContainerMovementRequest,
+@router.post(
+    "/send",
+    response_model=MovementOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_send_movement(
+    workspace_id: str,
+    payload: SendMovementIn,
     facade: LogiFacade = Depends(get_facade),
+    workspace=Depends(get_current_workspace),
 ):
-    """
-    Issue items to a client (rich OUT transaction).
-
-    Validates the primary category exists and has enforce_returns=True.
-    Creates a Transaction with line items and optional secondary tags.
-    """
-    try:
-        tx = await facade.issue_items(
-            name=body.name,
-            primary_item_quantities={body.container_type_id: body.quantity},
-            secondary_item_ids=body.content_type_ids,
-            notes=body.note,
-            primary_category_id=body.primary_category_id,
+    if not payload.items:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one item is required.",
         )
-    except UnknownContainerTypeError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except InsufficientBalanceError as e:
-        raise HTTPException(status_code=422, detail=str(e))
 
-    return MovementResponse(
-        transaction_id=tx.id,
-        client_id=tx.client_id,
-        client_name=tx.client_name,
-        direction=tx.direction,
-        notes=tx.notes,
-        timestamp=tx.timestamp,
-        primary_items=[
-            MovementPrimaryItem(
-                tracking_item_id=li.tracking_item_id,
-                label=li.label,
-                quantity=li.quantity,
-            )
-            for li in tx.line_items
-        ],
-        secondary_items=list(tx.secondary_items),
-    )
-
-
-@router.post("/movements/receive", status_code=201, response_model=MovementResponse)
-async def receive_movement(
-    body: LogContainerMovementRequest,
-    facade: LogiFacade = Depends(get_facade),
-):
-    """
-    Receive items back from a client (rich IN transaction).
-
-    Enforces that the client has sufficient outstanding balance
-    before allowing the return.
-    """
     try:
-        tx = await facade.return_items(
-            name=body.name,
-            primary_item_quantities={body.container_type_id: body.quantity},
-            secondary_item_ids=body.content_type_ids,
-            notes=body.note,
-            primary_category_id=body.primary_category_id,
+        movement = await facade.send_items(
+            workspace_id=workspace.id,
+            mode=workspace.mode,
+            client_id=payload.client_id,
+            item_quantities=aggregate_quantities(payload.items),
+            notes=payload.notes,
+            tag_ids=payload.tag_ids or [],
         )
-    except UnknownContainerTypeError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except InsufficientBalanceError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+    except EmptyMovementError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Total quantity must be greater than zero.",
+        )
+    except ArchivedItemError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+    except WorkspaceModeMismatchError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
 
-    return MovementResponse(
-        transaction_id=tx.id,
-        client_id=tx.client_id,
-        client_name=tx.client_name,
-        direction=tx.direction,
-        notes=tx.notes,
-        timestamp=tx.timestamp,
-        primary_items=[
-            MovementPrimaryItem(
-                tracking_item_id=li.tracking_item_id,
-                label=li.label,
-                quantity=li.quantity,
-            )
-            for li in tx.line_items
-        ],
-        secondary_items=list(tx.secondary_items),
-    )
+    items_by_id, tags_by_id = await load_mapper_context(facade, workspace.id)
+    return movement_to_out(movement, workspace.mode, items_by_id, tags_by_id)
