@@ -33,3 +33,5 @@ These are internal adapter-level refactors that do not change the public HTTP co
   - API entrypoint unchanged: movements still mounted via `adapters/api/__init__.py`
   - New structure: `routes_movements/__init__.py`, `routes_movements/send/`, `routes_movements/collect/`
   - Send and collect tests moved under `tests/integration/api/movements/send/` and `tests/integration/api/movements/collect/`
+  -  Deleted tests/integration/test_generic_transaction_repo.py
+   (legacy Transaction model). Behaviour to be covered by movement-based repos.

@@ -1,5 +1,4 @@
-# domain/entities.py
-# Shim module re-exporting entities from domain.entities package.
+# domain/entities/__init__.py
 
 from domain.entities.accounts import (
     AccountsSummary,
