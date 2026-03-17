@@ -8,15 +8,24 @@ Rules:
 - Pure functions and thin async helpers only.
 """
 
+from collections.abc import Sequence
 from decimal import Decimal
+from typing import Protocol, TypeVar
 
-from adapters.api.schemas.movements_send import SendMovementLineItemIn
 from application.facades import LogiFacade
 from domain.entities import Item, Tag
 
 
+class HasItemAndQuantity(Protocol):
+    item_id: str
+    quantity: Decimal
+
+
+TItem = TypeVar("TItem", bound=HasItemAndQuantity)
+
+
 def aggregate_quantities(
-    items: list[SendMovementLineItemIn],
+    items: Sequence[TItem],
 ) -> dict[str, Decimal]:
     """Aggregate quantities per item_id from a list of line items."""
     result: dict[str, Decimal] = {}

@@ -1,5 +1,3 @@
-# adapters/api/routes_movements.py
-
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from adapters.api.dependencies import get_current_workspace, get_facade
@@ -14,7 +12,7 @@ from domain.exceptions import (
     WorkspaceModeMismatchError,
 )
 
-router = APIRouter(prefix="/workspaces/{workspace_id}/movements", tags=["movements"])
+router = APIRouter()
 
 
 @router.post(
