@@ -46,7 +46,7 @@ contract but improve modularity.
 
 - 2026-03-18: Inventory RECEIVE endpoint added to
   `adapters/api/routes_movements/` package
-  - New schema: `adapters/api/schemas/movements_receive.py`
+  - New schema: `adapters/api/schemas/inventory/movements_receive.py`
     - `ReceiveMovementIn`: item_id, quantity, notes (optional), tag_ids (optional)
     - Flat schema — Inventory movements are per-item, no line items list
   - New routes:
@@ -59,6 +59,27 @@ contract but improve modularity.
     - `test_movements_receive_auth.py`: 401 no auth, 404 unknown workspace
     - `test_movements_receive_guards.py`: 409 accounts workspace, 400 archived item, 404 unknown item
     - `test_movements_receive_validation.py`: 400 zero quantity, 422 missing item_id, 422 missing quantity
+
+- 2026-03-18: `adapters/api/schemas/` root-level movement schemas replaced by
+  the `adapters/api/schemas/accounts/` and `adapters/api/schemas/inventory/`
+  packages
+  - Mirrors the structure of `routes_movements/` and `tests/integration/api/movements/`
+  - New structure:
+    - `adapters/api/schemas/accounts/movements_send.py` — SendMovementLineItemIn, SendMovementIn
+    - `adapters/api/schemas/accounts/movements_collect.py` — CollectMovementLineItemIn, CollectMovementIn
+    - `adapters/api/schemas/inventory/movements_receive.py` — ReceiveMovementIn
+    - `adapters/api/schemas/inventory/movements_use.py` — UseMovementIn
+    - `adapters/api/schemas/inventory/movements_correct.py` — CorrectMovementIn
+    - `adapters/api/schemas/movements_common.py` — MovementOut (shared, kept at root)
+  - Deleted root-level schemas:
+    - `adapters/api/schemas/movements_send.py`
+    - `adapters/api/schemas/movements_collect.py`
+    - `adapters/api/schemas/movements_receive.py`
+  - Updated imports in 3 route files:
+    - `routes_movements/accounts/send/__init__.py`
+    - `routes_movements/accounts/collect/__init__.py`
+    - `routes_movements/inventory/receive/__init__.py`
+  - No changes to schema fields, types, or HTTP contract.
 
 ## Domain refactors
 
