@@ -1,11 +1,11 @@
-# adapters/api/schemas/movements_receive.py
+# adapters/api/schemas/inventory/movements_use.py
 
 from decimal import Decimal
 
 from pydantic import BaseModel
 
 
-class ReceiveMovementIn(BaseModel):
+class UseMovementIn(BaseModel):
     item_id: str
     quantity: Decimal
     notes: str | None = None

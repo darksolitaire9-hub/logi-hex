@@ -1,8 +1,8 @@
-from adapters.api.schemas.movements_receive import ReceiveMovementIn
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from adapters.api.dependencies import get_current_workspace, get_facade
 from adapters.api.mappers.movements import movement_to_out
+from adapters.api.schemas.inventory.movements_receive import ReceiveMovementIn
 from adapters.api.schemas.movements_common import MovementOut
 from adapters.api.utils.movements import load_mapper_context
 from application.facades import LogiFacade

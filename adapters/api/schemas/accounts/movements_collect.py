@@ -1,4 +1,4 @@
-# adapters/api/schemas/movements_collect.py
+# adapters/api/schemas/accounts/movements_collect.py
 
 from decimal import Decimal
 
