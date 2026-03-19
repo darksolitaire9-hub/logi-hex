@@ -8,6 +8,7 @@ endpoints under the /api prefix.
 
 from fastapi import APIRouter
 
+from adapters.api.routes_clients import router as clients_router
 from adapters.api.routes_movements import router as movements_router
 
 # from adapters.api.routes_items import router as items_router
@@ -19,6 +20,7 @@ def build_api_router() -> APIRouter:
     router = APIRouter(prefix="/api")
 
     router.include_router(movements_router)
+    router.include_router(clients_router)
     # router.include_router(items_router)
     # router.include_router(workspaces_router)
 
