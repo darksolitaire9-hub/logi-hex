@@ -1,7 +1,5 @@
 # infrastructure/repositories/item_groups.py
 
-from datetime import datetime, timezone
-
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,9 +20,6 @@ class SqlAlchemyItemGroupRepository(ItemGroupRepositoryPort):
                     id=group.id,
                     workspace_id=group.workspace_id,
                     name=group.name,
-                    created_at=datetime.now(
-                        timezone.utc
-                    ),  # not on entity, generated here
                 )
             )
         else:
@@ -50,22 +45,21 @@ class SqlAlchemyItemGroupRepository(ItemGroupRepositoryPort):
         return ItemGroup(
             id=row.id,
             workspace_id=row.workspace_id,
-            name=row.name,  # was: label
-            # no created_at — not on entity
+            name=row.name,
         )
 
     async def list_all(self, workspace_id: str) -> list[ItemGroup]:
         result = await self.session.execute(
             sa.select(item_groups_table)
             .where(item_groups_table.c.workspace_id == workspace_id)
-            .order_by(item_groups_table.c.created_at)
+            .order_by(item_groups_table.c.name)  # ← was created_at, doesn't exist
         )
         rows = result.fetchall()
         return [
             ItemGroup(
                 id=row.id,
                 workspace_id=row.workspace_id,
-                name=row.name,  # was: label
+                name=row.name,
             )
             for row in rows
         ]
