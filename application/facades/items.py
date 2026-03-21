@@ -27,6 +27,11 @@ class ItemsMixin(FacadeBase):
     async def list_item_groups(self, workspace_id: str) -> list[ItemGroup]:
         return await list_item_groups(workspace_id, self._group_repo)
 
+    async def get_item_group(
+        self, workspace_id: str, group_id: str
+    ) -> ItemGroup | None:
+        return await self._group_repo.get_by_id(workspace_id, group_id)
+
     # ── Items ─────────────────────────────────────────────────────────────────
 
     async def create_item(

@@ -10,8 +10,9 @@ from fastapi import APIRouter
 
 from adapters.api.routes_accounts import router as accounts_router
 from adapters.api.routes_clients import router as clients_router
-from adapters.api.routes_movements import router as movements_router
 from adapters.api.routes_item_groups import router as item_groups_router
+from adapters.api.routes_items import router as items_router
+from adapters.api.routes_movements import router as movements_router
 
 # from adapters.api.routes_items import router as items_router
 # from adapters.api.routes_workspaces import router as workspaces_router
@@ -25,6 +26,7 @@ def build_api_router() -> APIRouter:
     router.include_router(clients_router)
     router.include_router(accounts_router)
     router.include_router(item_groups_router)
+    router.include_router(items_router)
     # router.include_router(items_router)
     # router.include_router(workspaces_router)
 
