@@ -1,3 +1,26 @@
+> ⚠️ **API & architecture have changed (workspaces refactor)**
+>
+> The code on `main` now uses a workspace-aware API with ACCOUNTS / INVENTORY
+> modes and `/api/workspaces/{id}/...` endpoints.
+>
+> If you want the **new version** (recommended for future work):
+>
+> ```bash
+> git checkout main
+> ```
+>
+> If you need the **old, pre-workspaces API** exactly as shown in the demo below
+> while the new UI is still in progress, use the legacy tag:
+>
+> ```bash
+> git checkout v0.1-legacy
+> # or
+> git clone https://github.com/darksolitaire9-hub/logi-hex -b v0.1-legacy
+> ```
+>
+> The legacy API (`/api/movements/issue`, `/api/summary`, etc.) is frozen and
+> will not receive new features. All new work happens on `main`.
+
 
 # logi-hex
 
@@ -431,5 +454,3 @@ See the [`LICENSE`](./LICENSE) file for details.
 
 Certain UI ideas and components are inspired by [shadcn/ui](https://ui.shadcn.com/) (MIT).
 Design mockups may include photos from [Unsplash](https://unsplash.com) under the Unsplash license.
-
-
