@@ -1,32 +1,17 @@
-import { useConfig } from "~/composables/useConfig";
+import { useAuth } from "~/composables/useAuth";
 
-export default defineNuxtRouteMiddleware(async (to) => {
+export default defineNuxtRouteMiddleware((to) => {
   const { isAuthenticated } = useAuth();
 
-  // Auth guard
+  // If not authenticated, send to login (except when already there)
   if (!isAuthenticated.value && to.path !== "/login") {
     return navigateTo("/login");
   }
+
+  // If authenticated and trying to go to /login, send to home
   if (isAuthenticated.value && to.path === "/login") {
     return navigateTo("/");
   }
 
-  // Stop here for unauthenticated users — don't run setup logic
-  if (!isAuthenticated.value) {
-    return;
-  }
-
-  // Setup guard — now using backend config
-  const { config, hydrateConfigFromBackend } = useConfig();
-  await hydrateConfigFromBackend();
-
-  const isSetupComplete = config.value.isSetupComplete;
-  const isSetupRoute = to.path === "/setup";
-
-  if (!isSetupComplete && !isSetupRoute) {
-    return navigateTo("/setup");
-  }
-  if (isSetupComplete && isSetupRoute) {
-    return navigateTo("/settings");
-  }
+  // No setup/config guard for now — workspace picker lives at /setup
 });

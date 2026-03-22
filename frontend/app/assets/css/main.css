@@ -1,2 +1,18 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+
+:root {
+    --lh-bg: #f3f4f6; /* app background */
+    --lh-surface: #ffffff; /* cards / panels */
+    --lh-ink: #1a1a2e; /* main text */
+    --lh-ink-muted: #717182; /* secondary text */
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --lh-bg: #020617;
+        --lh-surface: #0f172a;
+        --lh-ink: #e5e7eb;
+        --lh-ink-muted: #9ca3af;
+    }
+}

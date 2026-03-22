@@ -10,7 +10,6 @@ import {
     watchEffect,
 } from "vue";
 import { X, ArrowUpRight, ArrowDownLeft } from "lucide-vue-next";
-import { useApp } from "~/composables/useApp";
 import LogPrimaryPicker from "~/components/log/LogPrimaryPicker.vue";
 
 type Direction = "OUT" | "IN";

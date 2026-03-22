@@ -1,4 +1,3 @@
-<!-- /components/CommandPalette.vue -->
 <script setup lang="ts">
 import {
     computed,
@@ -14,14 +13,9 @@ import {
     ArrowUpRight,
     ArrowDownLeft,
     Layers,
-    Package,
     Settings2,
-    Users,
-    Tags,
     CornerDownLeft,
-    Hash,
 } from "lucide-vue-next";
-import { useApp } from "~/composables/useApp";
 
 type Direction = "OUT" | "IN";
 
@@ -46,7 +40,6 @@ const emit = defineEmits<{
 const isClient =
     typeof window !== "undefined" && typeof document !== "undefined";
 
-const { config, containerTypes, contentItems, clientBalances } = useApp();
 const router = useRouter();
 
 const query = ref("");
@@ -69,12 +62,8 @@ const accentClasses: Record<string, string> = {
     default: "bg-[#f0f0f4] text-[#717182]",
 };
 
+// Minimal, static items — no useApp / legacy data
 const allItems = computed<ResultItem[]>(() => {
-    const cfg = config.value;
-    const primary = containerTypes.value ?? []; // ← safe fallback
-    const content = contentItems.value ?? []; // ← safe fallback
-    const clients = clientBalances.value ?? [];
-
     const items: ResultItem[] = [];
 
     items.push({
@@ -87,6 +76,7 @@ const allItems = computed<ResultItem[]>(() => {
         shortcut: ["O"],
         action: () => run(() => onOpenModal("OUT")),
     });
+
     items.push({
         id: "action-in",
         group: "Quick Actions",
@@ -102,72 +92,19 @@ const allItems = computed<ResultItem[]>(() => {
         id: "page-dashboard",
         group: "Pages",
         label: "Dashboard",
-        sublabel: "Overview and client balances",
+        sublabel: "Go to main dashboard",
         icon: Layers,
         action: () => run(() => router.push("/")),
     });
-    items.push({
-        id: "page-primary",
-        group: "Pages",
-        label: cfg.primaryCategoryName,
-        sublabel: `Manage ${cfg.primaryCategoryName} types`,
-        icon: Package,
-        action: () => run(() => router.push("/primary")),
-    });
-    items.push({
-        id: "page-content",
-        group: "Pages",
-        label: cfg.contentCategoryName || "Content Items",
-        sublabel: "Manage content tags",
-        icon: Tags,
-        action: () => run(() => router.push("/content")),
-    });
+
     items.push({
         id: "page-setup",
         group: "Pages",
-        label: "Settings",
-        sublabel: "Configure category names",
+        label: "Setup",
+        sublabel: "Choose workspace and configure",
         icon: Settings2,
-        action: () => run(() => router.push("/settings")),
+        action: () => run(() => router.push("/setup")),
     });
-
-    for (const client of clients) {
-        items.push({
-            id: `client-${client.clientName}`,
-            group: "Clients with containers",
-            label: client.clientName,
-            sublabel: client.items
-                .map((i: any) => `${i.quantity} ${i.label}`)
-                .join(" · "),
-            icon: Users,
-            badge: client.total,
-            action: () => run(() => router.push("/")),
-        });
-    }
-
-    for (const pi of primary) {
-        items.push({
-            id: `pi-${pi.id}`,
-            group: cfg.primaryCategoryName,
-            label: pi.label,
-            sublabel: "Container type",
-            icon: Hash,
-            accentColor: "blue",
-            action: () => run(() => router.push("/primary")),
-        });
-    }
-
-    for (const ci of content) {
-        items.push({
-            id: `ci-${ci.id}`,
-            group: cfg.contentCategoryName || "Content",
-            label: ci.label,
-            sublabel: "Content tag · informational",
-            icon: Tags,
-            accentColor: "purple",
-            action: () => run(() => router.push("/content")),
-        });
-    }
 
     return items;
 });

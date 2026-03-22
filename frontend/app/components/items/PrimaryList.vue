@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<!-- <script setup lang="ts">
 import { onMounted, computed } from "vue";
 import { Package, Trash2, Plus } from "lucide-vue-next";
 import { useApp } from "~/composables/useApp";
@@ -69,4 +69,4 @@ function onDeletePrimary(id: string) {
             </button>
         </template>
     </ItemListEditor>
-</template>
+</template> -->

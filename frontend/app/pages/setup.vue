@@ -1,8 +1,8 @@
-<!-- pages/setup.vue -->
 <script setup lang="ts">
-import SetupWizard from "~/components/setup/SetupWizard.vue";
+import WorkspacePicker from "~/components/setup/WorkspacePicker.vue";
 definePageMeta({ layout: "setup" });
 </script>
+
 <template>
-    <SetupWizard />
+    <WorkspacePicker />
 </template>
