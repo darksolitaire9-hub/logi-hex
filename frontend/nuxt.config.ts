@@ -7,6 +7,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ["@nuxt/ui"],
   css: ["~/assets/css/main.css"],
+
   runtimeConfig: {
     public: {
       API_URL: process.env.NUXT_PUBLIC_API_URL ?? "http://localhost:8000", // default
