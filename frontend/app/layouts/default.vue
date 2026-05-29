@@ -65,7 +65,7 @@
       <!-- Topbar for mobile -->
       <header class="md:hidden h-16 border-b border-[var(--lh-border-subtle)] bg-[var(--lh-bg-surface)] flex items-center justify-between px-4">
         <span class="font-semibold text-[var(--lh-ink-primary)]">Logi-Hex</span>
-        <UButton icon="i-lucide-menu" color="gray" variant="ghost" />
+        <UButton icon="i-lucide-menu" color="neutral" variant="ghost" />
       </header>
       
       <!-- Page View -->
