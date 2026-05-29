@@ -1,4 +1,8 @@
-<script setup lang="ts">
+<template>
+    <h1>Hello from login</h1>
+</template>
+
+<!-- <script setup lang="ts">
 import { ref, nextTick } from "vue";
 import { loginApi } from "../../lib/api/auth";
 
@@ -117,4 +121,4 @@ async function handleLogin() {
             </button>
         </form>
     </div>
-</template>
+</template> -->

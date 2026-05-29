@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<!-- <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref } from "vue";
 import { useRoute } from "vue-router";
 import { Package, Settings2, Layers, Search, Tags } from "lucide-vue-next";
@@ -66,4 +66,11 @@ const isActive = (to: string) => {
     if (to === "/") return route.path === "/";
     return route.path.startsWith(to);
 };
-</script>
+</script> -->
+
+<!-- app/layouts/default.vue -->
+<template>
+    <div class="min-h-screen">
+        <slot />
+    </div>
+</template>
