@@ -3,26 +3,33 @@ __pycache__/
 *.pyo
 *.pyd
 
-# SQLite database
+# Local Database Files
 *.db
+*.sqlite
+*.sqlite3
+*-shm
+*-wal
 
-# Virtual envs
+# Virtual environments
 .venv/
 .env/
 
-# Env
+# Environment Variables
 .env
+.env.local
 
-# Node / frontend
+# Frontend (Nuxt)
 node_modules/
+frontend/node_modules/
+frontend/.nuxt/
 frontend/dist/
-frontend/.svelte-kit/
+frontend/.output/
 
-# VSCode / IDE
+# Backend (Tauri / Rust)
+src-tauri/target/
+
+# IDE / OS
 .vscode/
 .idea/
-
-
-# debug files
-*.txt
-*.nu
+.DS_Store
+Thumbs.db
