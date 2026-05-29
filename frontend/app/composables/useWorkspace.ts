@@ -1,41 +1,67 @@
-// frontend/app/composables/useWorkspace.ts
-
-import { ref } from "vue";
-import type { Workspace, WorkspaceContext } from "../../lib/api/types";
-import { listWorkspaces } from "../../lib/api/workspaces";
-
-// shared state (singleton across the app)
-const workspaces = ref<Workspace[]>([]);
-const currentWorkspace = ref<WorkspaceContext | null>(null);
-const isLoading = ref(false);
-const error = ref<string | null>(null);
+import { ref } from 'vue'
+import { v4 as uuidv4 } from 'uuid'
+import { useDatabase } from './useDatabase'
+import type { Workspace, CreateWorkspacePayload } from '../types/domain'
 
 export function useWorkspace() {
-  async function loadWorkspaces(): Promise<void> {
-    isLoading.value = true;
-    error.value = null;
+  const workspaces = ref<Workspace[]>([])
+  const currentWorkspace = ref<Workspace | null>(null)
+  const loading = ref(false)
+
+  async function fetchWorkspaces() {
+    loading.value = true
     try {
-      workspaces.value = await listWorkspaces();
-    } catch (_err) {
-      error.value = "Failed to load workspaces.";
+      const db = await useDatabase()
+      const result = await db.select<Workspace[]>('SELECT * FROM workspaces ORDER BY created_at DESC')
+      workspaces.value = result
+    } catch (e) {
+      console.error('Failed to fetch workspaces:', e)
     } finally {
-      isLoading.value = false;
+      loading.value = false
     }
   }
 
-  function selectWorkspace(workspace: Workspace): void {
-    currentWorkspace.value = {
-      id: workspace.id,
-      mode: workspace.mode,
-    };
+  async function createWorkspace(payload: CreateWorkspacePayload) {
+    try {
+      const db = await useDatabase()
+      const newId = uuidv4()
+      await db.execute(
+        'INSERT INTO workspaces (id, name, mode) VALUES ($1, $2, $3)',
+        [newId, payload.name, payload.mode]
+      )
+      await fetchWorkspaces()
+    } catch (e) {
+      console.error('Failed to create workspace:', e)
+      throw e
+    }
+  }
+
+  async function selectWorkspace(id: string) {
+    const found = workspaces.value.find(w => w.id === id)
+    if (found) {
+      currentWorkspace.value = found
+      // Save selection to local storage for persistence across reloads
+      localStorage.setItem('lh_active_workspace', id)
+    }
+  }
+
+  async function restoreActiveWorkspace() {
+    if (workspaces.value.length === 0) {
+      await fetchWorkspaces()
+    }
+    const savedId = localStorage.getItem('lh_active_workspace')
+    if (savedId) {
+      selectWorkspace(savedId)
+    }
   }
 
   return {
     workspaces,
     currentWorkspace,
-    isLoading,
-    error,
-    loadWorkspaces,
+    loading,
+    fetchWorkspaces,
+    createWorkspace,
     selectWorkspace,
-  };
+    restoreActiveWorkspace
+  }
 }

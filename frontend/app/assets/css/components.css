@@ -1,0 +1,109 @@
+/* logi-hex/frontend/app/assets/css/components.css */
+
+/* 
+  Custom Components mapping to our tokens.
+  Applying Apple HIG principles:
+  - 44px minimum touch targets for clickable items.
+  - Smooth, native-feeling transitions.
+*/
+
+@layer components {
+  /* 
+    --- CARDS ---
+    Depth principle: Cards should feel slightly elevated above the base.
+  */
+  .lh-card {
+    background-color: var(--lh-bg-surface);
+    border: 1px solid var(--lh-border-subtle);
+    border-radius: 1rem; /* 16px */
+    box-shadow: var(--lh-shadow-sm);
+    padding: var(--spacing-6);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Interactive cards (like the workspace picker) */
+  .lh-card-interactive {
+    cursor: pointer;
+  }
+  
+  .lh-card-interactive:hover {
+    box-shadow: var(--lh-shadow-md);
+    transform: translateY(-2px);
+    border-color: var(--lh-border);
+  }
+
+  .lh-card-interactive:active {
+    transform: translateY(0);
+    box-shadow: var(--lh-shadow-sm);
+  }
+
+  /* 
+    --- BUTTONS ---
+    Minimum touch target constraint: 44px (spacing-11).
+  */
+  .lh-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px; /* HIG Rule */
+    padding-left: var(--spacing-4);
+    padding-right: var(--spacing-4);
+    border-radius: 0.75rem; /* 12px */
+    font-weight: 500;
+    font-size: 0.9375rem; /* 15px */
+    transition: all 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .lh-btn-primary {
+    background-color: var(--lh-brand);
+    color: #ffffff; /* Always white on primary brand */
+    border: none;
+  }
+
+  .lh-btn-primary:hover {
+    background-color: var(--lh-brand-hover);
+  }
+
+  .lh-btn-primary:active {
+    opacity: 0.8;
+  }
+
+  .lh-btn-secondary {
+    background-color: var(--lh-bg-elevated);
+    color: var(--lh-ink-primary);
+    border: 1px solid var(--lh-border);
+  }
+
+  .lh-btn-secondary:hover {
+    background-color: var(--lh-bg-subtle);
+  }
+
+  /* 
+    --- INPUTS ---
+    Inputs also must respect the 44px minimum touch target rule.
+  */
+  .lh-input {
+    min-height: 44px;
+    width: 100%;
+    background-color: var(--lh-bg-elevated);
+    border: 1px solid var(--lh-border);
+    border-radius: 0.75rem;
+    padding-left: var(--spacing-4);
+    padding-right: var(--spacing-4);
+    color: var(--lh-ink-primary);
+    font-size: 1rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .lh-input:focus {
+    outline: none;
+    border-color: var(--lh-brand);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15); /* Focus ring */
+  }
+
+  .lh-input::placeholder {
+    color: var(--lh-ink-secondary);
+  }
+}

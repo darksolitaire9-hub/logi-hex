@@ -1,18 +1,20 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-:root {
-    --lh-bg: #f3f4f6; /* app background */
-    --lh-surface: #ffffff; /* cards / panels */
-    --lh-ink: #1a1a2e; /* main text */
-    --lh-ink-muted: #717182; /* secondary text */
-}
+/* Logi-Hex Design System — order matters */
+@import "./tokens.css";     /* canonical design tokens — colours, spacing, typography */
+@import "./components.css"; /* utility classes built on tokens — buttons, cards, etc. */
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --lh-bg: #020617;
-        --lh-surface: #0f172a;
-        --lh-ink: #e5e7eb;
-        --lh-ink-muted: #9ca3af;
-    }
-}
+/* Base Styles */
+@layer base {
+  body {
+    background-color: var(--lh-bg-base);
+    color: var(--lh-ink-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+}

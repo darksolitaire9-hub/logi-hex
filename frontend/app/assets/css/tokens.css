@@ -1,0 +1,100 @@
+/* logi-hex/frontend/app/assets/css/tokens.css */
+/* 
+  Apple HIG Inspired Design Tokens.
+  Principles:
+  1. Clarity (Legibility first, pure spacing, clear hierarchy)
+  2. Deference (UI gets out of the way of the content)
+  3. Depth (Subtle shadows and overlays to indicate state and layers)
+*/
+
+@theme {
+  /* 
+    --- TYPOGRAPHY ---
+    We rely on the system font stack (San Francisco on Mac, Segoe on Windows)
+    to feel native to the OS.
+  */
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* 
+    --- SPACING (The 4pt grid) ---
+    Apple HIG relies heavily on precise rhythm. 
+  */
+  --spacing-1: 0.25rem;  /* 4px */
+  --spacing-2: 0.5rem;   /* 8px */
+  --spacing-3: 0.75rem;  /* 12px */
+  --spacing-4: 1rem;     /* 16px */
+  --spacing-5: 1.25rem;  /* 20px */
+  --spacing-6: 1.5rem;   /* 24px */
+  --spacing-8: 2rem;     /* 32px */
+  --spacing-10: 2.5rem;  /* 40px */
+  --spacing-11: 2.75rem; /* 44px - HIG MINIMUM TOUCH TARGET */
+  --spacing-12: 3rem;    /* 48px */
+}
+
+/* 
+  --- COLOR PALETTE ---
+  Tailwind v4 CSS variables mapping.
+*/
+:root {
+  /* Backgrounds: Deference principle. Let the content breathe. */
+  --lh-bg-base: #f5f5f7; /* Apple classic off-white */
+  --lh-bg-surface: #ffffff;
+  --lh-bg-elevated: #ffffff;
+  --lh-bg-subtle: #f3f4f6;
+
+  /* Text/Ink: Clarity principle. */
+  --lh-ink-primary: #1d1d1f; /* Not pure black */
+  --lh-ink-secondary: #86868b;
+  --lh-ink-tertiary: #d2d2d7;
+
+  /* Brand / Action Colors */
+  --lh-brand: #0071e3; /* Apple Blue */
+  --lh-brand-hover: #0077ed;
+  
+  /* Status Colors */
+  --lh-success: #34c759;
+  --lh-warning: #ff9f0a;
+  --lh-danger: #ff3b30;
+
+  /* Borders / Dividers */
+  --lh-border: #d2d2d7;
+  --lh-border-subtle: #e5e5ea;
+
+  /* Depth (Shadows) */
+  --lh-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --lh-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --lh-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Backgrounds */
+    --lh-bg-base: #000000;
+    --lh-bg-surface: #1c1c1e;
+    --lh-bg-elevated: #2c2c2e;
+    --lh-bg-subtle: #1a1a1c;
+
+    /* Text/Ink */
+    --lh-ink-primary: #f5f5f7;
+    --lh-ink-secondary: #86868b;
+    --lh-ink-tertiary: #48484a;
+
+    /* Brand / Action Colors */
+    --lh-brand: #2997ff;
+    --lh-brand-hover: #3ea6ff;
+
+    /* Status Colors */
+    --lh-success: #32d74b;
+    --lh-warning: #ffd60a;
+    --lh-danger: #ff453a;
+
+    /* Borders / Dividers */
+    --lh-border: #38383a;
+    --lh-border-subtle: #2c2c2e;
+
+    /* Depth (Shadows) - Dark mode relies more on borders than shadows */
+    --lh-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --lh-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --lh-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  }
+}
