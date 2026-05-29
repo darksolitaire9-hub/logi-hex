@@ -26,8 +26,8 @@ export function useWorkspace() {
       const db = await useDatabase()
       const newId = uuidv4()
       await db.execute(
-        'INSERT INTO workspaces (id, name, mode) VALUES ($1, $2, $3)',
-        [newId, payload.name, payload.mode]
+        'INSERT INTO workspaces (id, name, mode, password_hash) VALUES ($1, $2, $3, $4)',
+        [newId, payload.name, payload.mode, payload.password_hash]
       )
       await fetchWorkspaces()
     } catch (e) {

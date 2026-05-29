@@ -6,6 +6,7 @@ export interface Workspace {
   id: string
   name: string
   mode: WorkspaceMode
+  password_hash: string | null
   created_at: string
 }
 
@@ -50,6 +51,7 @@ export interface MovementLineItem {
 export interface CreateWorkspacePayload {
   name: string
   mode: WorkspaceMode
+  password_hash: string | null
 }
 
 export interface LogMovementPayload {

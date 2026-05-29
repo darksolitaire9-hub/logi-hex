@@ -4,6 +4,7 @@ CREATE TABLE workspaces (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     mode TEXT NOT NULL CHECK (mode IN ('ACCOUNTS', 'INVENTORY')),
+    password_hash TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
