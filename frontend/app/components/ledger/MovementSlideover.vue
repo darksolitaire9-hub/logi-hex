@@ -98,6 +98,8 @@ const props = defineProps<{
   clientId: string
   clientName: string
   isSending: boolean
+  forceDirection?: 'RECEIVE' | 'USE'
+  preSelectItem?: string
 }>()
 
 const emit = defineEmits(['update:modelValue', 'success'])
@@ -140,9 +142,13 @@ async function handleSubmit() {
     .map(([item_id, quantity]) => ({ item_id, quantity }))
 
   try {
+    const finalDirection = props.forceDirection 
+      ? props.forceDirection 
+      : (props.isSending ? 'SEND' : 'COLLECT')
+
     await logMovement({
-      direction: props.isSending ? 'SEND' : 'COLLECT',
-      client_id: props.clientId,
+      direction: finalDirection,
+      client_id: props.clientId || undefined,
       notes: notes.value || undefined,
       correction_reason: (props.isSending ? undefined : correctionReason.value) || undefined,
       lines

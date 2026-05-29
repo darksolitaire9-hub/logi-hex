@@ -55,11 +55,34 @@ export function useLedger() {
 
         for (const line of payload.lines) {
           if (line.quantity <= 0) continue;
+          
+          // 1. Insert the movement line item
           await db.execute(
             `INSERT INTO movement_line_items (id, movement_id, item_id, quantity) 
              VALUES ($1, $2, $3, $4)`,
             [uuidv4(), movementId, line.item_id, line.quantity]
           )
+
+          // 2. Automatically update live stock if it's an internal inventory movement
+          if (payload.direction === 'RECEIVE') {
+            await db.execute(
+              `UPDATE items SET current_stock = current_stock + $1 WHERE id = $2 AND workspace_id = $3`,
+              [line.quantity, line.item_id, currentWorkspace.value.id]
+            )
+          } else if (payload.direction === 'USE') {
+            await db.execute(
+              `UPDATE items SET current_stock = current_stock - $1 WHERE id = $2 AND workspace_id = $3`,
+              [line.quantity, line.item_id, currentWorkspace.value.id]
+            )
+          } else if (payload.direction === 'CORRECT') {
+            // For corrections, the payload quantity is exactly what we want to adjust the stock by.
+            // (e.g. found 5 extra = +5, missing 2 = -2). 
+            // We use the same + logic, just passing negative numbers if it's a loss.
+            await db.execute(
+              `UPDATE items SET current_stock = current_stock + $1 WHERE id = $2 AND workspace_id = $3`,
+              [line.quantity, line.item_id, currentWorkspace.value.id]
+            )
+          }
         }
         
         await db.execute('COMMIT')
