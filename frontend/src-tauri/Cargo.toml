@@ -33,3 +33,17 @@ futures-util = "0.3"
 ort = { version = "2.0.0-rc.9", features = ["load-dynamic"] }
 ndarray = "0.17.2"
 sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio-rustls"] }
+# Type contract generation — TypeScript bindings auto-generated from Rust structs
+ts-rs = "10"
+# OS-native keyring for master encryption key (Windows Credential Manager)
+keyring = { version = "3", features = ["windows-native"] }
+# Field-level encryption: AES-256-GCM
+aes-gcm = "0.10"
+rand = "0.8"
+# UUID generation on the Rust side (removes client-generated IDs)
+uuid = { version = "1", features = ["v4"] }
+# Memory hygiene: zero key material on drop
+zeroize = { version = "1", features = ["derive"] }
+# Encoding utilities for keyring and AES-GCM payload
+hex = "0.4"
+base64 = "0.21"

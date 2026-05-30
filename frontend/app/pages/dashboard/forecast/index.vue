@@ -256,14 +256,14 @@ async function runForecast() {
     
     let baseForecast;
     try {
-      baseForecast = JSON.parse(responseJson)
+      const parsed = JSON.parse(responseJson)
+      baseForecast = parsed.forecast
+      modelUsed.value = parsed.engine_name
     } catch (parseErr) {
       throw new Error(`Invalid forecast response: ${responseJson}`);
     }
     
     if (Array.isArray(baseForecast)) {
-      modelUsed.value = 'Local TimesFM (Rust/ONNX)'
-      
       // Calculate total base prediction
       const totalBase = baseForecast.reduce((sum: number, v: number) => sum + v, 0)
       
@@ -288,7 +288,7 @@ async function runForecast() {
       })
       
     } else {
-      error.value = response.message || 'Unknown error from Sidecar'
+      error.value = 'Failed to generate forecast: response format was invalid.'
     }
   } catch (err: any) {
     console.error('Forecast error:', err)

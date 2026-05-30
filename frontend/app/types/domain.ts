@@ -41,27 +41,6 @@ export interface Item {
   deleted_at?: string
   uoms?: ItemUOM[]
 }
-
-export type MovementDirection = 'SEND' | 'COLLECT' | 'RECEIVE' | 'USE' | 'CORRECT'
-export type CorrectionReason = 'DAMAGE' | 'LOSS' | 'COUNT_ADJUSTMENT' | 'OTHER'
-
-export interface Movement {
-  id: string
-  workspace_id: string
-  direction: MovementDirection
-  timestamp: string
-  client_id: string | null
-  correction_reason: CorrectionReason | null
-  notes: string | null
-}
-
-export interface MovementLineItem {
-  id: string
-  movement_id: string
-  item_id: string
-  quantity: number
-}
-
 // Helper types for the UI forms
 export interface CreateWorkspacePayload {
   name: string
@@ -69,13 +48,3 @@ export interface CreateWorkspacePayload {
   password_hash: string | null
 }
 
-export interface LogMovementPayload {
-  direction: MovementDirection
-  client_id?: string
-  correction_reason?: CorrectionReason
-  notes?: string
-  lines: Array<{
-    item_id: string
-    quantity: number
-  }>
-}

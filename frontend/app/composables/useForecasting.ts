@@ -31,9 +31,9 @@ export const useForecasting = () => {
   }
 
   // Trigger the Rust Walk-Forward Backtester and immediately save scores to DB
-  const triggerBacktest = async (itemId: string, history: number[], horizonDays: number) => {
+  const triggerBacktest = async (itemId: string, horizonDays: number) => {
     // 1. Invoke Rust backend mathematically
-    const scores = await invoke<EngineScore[]>('trigger_backtest', { history, horizon: horizonDays })
+    const scores = await invoke<EngineScore[]>('run_backtest', { itemId, horizon: horizonDays })
     
     // 2. Save scores to local SQLite
     await saveBacktestScores(itemId, horizonDays, scores)
@@ -57,12 +57,12 @@ export const useForecasting = () => {
     const db = await useDatabase()
     
     // Check if user has hard-locked an engine override
-    const settings = await db.select<{ locked_engine_name: string }[]>(
-      `SELECT locked_engine_name FROM item_forecasting_settings WHERE item_id = $1 AND is_locked = 1`,
+    const settings = await db.select<{ selected_engine: string }[]>(
+      `SELECT selected_engine FROM item_forecasting_settings WHERE item_id = $1 AND locked = 1`,
       [itemId]
     )
-    if (settings.length > 0 && settings[0].locked_engine_name) {
-      return settings[0].locked_engine_name
+    if (settings.length > 0 && settings[0].selected_engine && settings[0].selected_engine !== 'AUTO') {
+      return settings[0].selected_engine
     }
 
     // Otherwise, auto-select based on lowest MASE (primary for sparse data), then WAPE.
@@ -86,15 +86,32 @@ export const useForecasting = () => {
     // Default Fallback if no scores exist
     return "Baseline_LastKnown"
   }
+
+  // Retrieve current settings and lock status for an item
+  const getSettings = async (itemId: string): Promise<ItemForecastingSettings | null> => {
+    const db = await useDatabase()
+    const rows = await db.select<{ selected_engine: string, locked: number }[]>(
+      `SELECT selected_engine, locked FROM item_forecasting_settings WHERE item_id = $1`,
+      [itemId]
+    )
+    if (rows.length > 0) {
+      return {
+        item_id: itemId,
+        locked_engine_name: rows[0].selected_engine,
+        is_locked: rows[0].locked === 1
+      }
+    }
+    return null
+  }
   
   // Apply User Overrides
   const setUserOverride = async (itemId: string, engineName: string | null, isLocked: boolean) => {
     const db = await useDatabase()
     await db.execute(
       `INSERT OR REPLACE INTO item_forecasting_settings 
-       (item_id, locked_engine_name, is_locked) 
+       (item_id, selected_engine, locked) 
        VALUES ($1, $2, $3)`,
-      [itemId, engineName, isLocked ? 1 : 0]
+      [itemId, engineName || 'AUTO', isLocked ? 1 : 0]
     )
   }
 
@@ -102,6 +119,7 @@ export const useForecasting = () => {
     triggerBacktest,
     getScores,
     getBestEngine,
+    getSettings,
     setUserOverride
   }
 }

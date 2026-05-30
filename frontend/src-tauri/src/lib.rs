@@ -1,5 +1,8 @@
 pub mod db;
 pub mod ai;
+pub mod commands;
+pub mod crypto;
+pub mod types;
 
 use tauri_plugin_sql::{Migration, MigrationKind};
 use tauri::{Manager, RunEvent};
@@ -10,14 +13,6 @@ fn generate_statistical_forecast(history: Vec<f64>, horizon: usize) -> Result<Ve
     // 0.1 is a standard smoothing parameter for alpha. In a full system, this can be auto-tuned.
     let forecast = crate::ai::croston::croston_forecast(&history, horizon, 0.1);
     Ok(forecast)
-}
-
-#[tauri::command]
-fn trigger_backtest(app_handle: tauri::AppHandle, history: Vec<f64>, horizon: usize) -> Result<Vec<crate::ai::orchestrator::EngineScore>, String> {
-    use tauri::Manager;
-    let mut model_dir = app_handle.path().app_data_dir().map_err(|_| "Failed to resolve app data dir".to_string())?;
-    model_dir.push("models");
-    crate::ai::orchestrator::run_backtest_simulation(Some(model_dir), &history, horizon)
 }
 
 #[tauri::command]
@@ -33,31 +28,52 @@ async fn run_ml_forecast(
     horizon: u32,
     db_pool: tauri::State<'_, sqlx::SqlitePool>
 ) -> Result<String, String> {
-    // 1. DATA GRAVITY: Fetch data directly from SQLite instead of via IPC String
-    let records = sqlx::query("SELECT quantity FROM movement_line_items WHERE item_id = ? ORDER BY id ASC")
-        .bind(&item_id)
-        .fetch_all(&*db_pool)
-        .await
-        .map_err(|e| format!("Failed to fetch history: {}", e))?;
-
-    let history: Vec<f64> = records.into_iter().map(|r| r.get::<f64, _>("quantity")).collect();
+    // 1. DATA GRAVITY: Fetch data directly from SQLite using fetch_item_demand_history
+    let history = crate::commands::forecast::fetch_item_demand_history(&item_id, &*db_pool).await?;
 
     if history.is_empty() {
         return Err("No history found for item".to_string());
     }
 
-    // 2. IN-PROCESS AI: Use the shared ORT session (Lazy Loaded)
-    let ai_state = app_handle.state::<crate::ai::state::AiStateManager>();
-    let mut engine_guard = ai_state.get_or_load_engine(&app_handle).await?;
-    
-    let forecast = if let Some(engine) = engine_guard.as_mut() {
-        engine.predict(&history, horizon as usize)?
-    } else {
-        return Err("Engine loaded but reference is null".to_string());
+    // 2. Resolve engine dynamically
+    let engine_name = crate::commands::forecast::resolve_forecasting_engine(&item_id, horizon as usize, &*db_pool).await?;
+
+    // 3. Execute chosen engine
+    let forecast = match engine_name.as_str() {
+        "TimesFM_2.5_ONNX" => {
+            // Pad history to minimum 14 days for TimesFM
+            let input_history = if history.len() < 14 {
+                let mut padded = vec![0.0; 14];
+                let offset = 14 - history.len();
+                padded[offset..].copy_from_slice(&history);
+                padded
+            } else {
+                history.clone()
+            };
+            let ai_state = app_handle.state::<crate::ai::state::AiStateManager>();
+            let mut engine_guard = ai_state.get_or_load_engine(&app_handle).await?;
+            if let Some(engine) = engine_guard.as_mut() {
+                engine.predict(&input_history, horizon as usize)?
+            } else {
+                return Err("Engine loaded but reference is null".to_string());
+            }
+        }
+        "Rust_Croston" => {
+            crate::ai::croston::croston_forecast(&history, horizon as usize, 0.1)
+        }
+        _ => {
+            // Default/Fallback: Baseline_LastKnown
+            crate::ai::orchestrator::last_known_demand_forecast(&history, horizon as usize)
+        }
     };
-    
+
+    let response = crate::types::ForecastResponse {
+        forecast,
+        engine_name,
+    };
+
     // Return compact JSON result
-    serde_json::to_string(&forecast).map_err(|e| e.to_string())
+    serde_json::to_string(&response).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -177,7 +193,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             run_ml_forecast, 
             generate_statistical_forecast, 
-            trigger_backtest, 
+            crate::commands::forecast::run_backtest,
+            crate::commands::forecast::save_forecast_audit,
+            crate::commands::ledger::log_movement,
+            crate::commands::ledger::fetch_client_history,
+            crate::commands::ledger::fetch_global_history,
             download_ai_pack,
             export_csv_to_disk,
             get_ai_status,
@@ -197,6 +217,14 @@ pub fn run() {
             // Initialize AI State Manager
             let ai_manager = crate::ai::state::AiStateManager::new();
             handle.manage(ai_manager);
+
+            // Initialize Crypto State (OS Keyring)
+            let master_key = crate::crypto::load_or_create_master_key().unwrap_or_else(|e| {
+                log::error!("Failed to init OS keyring: {}", e);
+                panic!("Keyring init failed");
+            });
+            let crypto_state = crate::crypto::state::CryptoState::new(master_key.to_vec());
+            handle.manage(crypto_state);
 
             // Initialize custom SqlitePool (WAL) and MPSC DbWriter
             let handle = app.handle().clone();

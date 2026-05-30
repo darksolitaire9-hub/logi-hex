@@ -1,16 +1,19 @@
 import { ref } from 'vue'
 import { v4 as uuidv4 } from 'uuid'
+import { invoke } from '@tauri-apps/api/core'
 import { useDatabase } from './useDatabase'
 import { useWorkspace } from './useWorkspace'
 import { encryptField, decryptField } from '../utils/crypto'
-import type { Movement, MovementDirection, CorrectionReason } from '../types/domain'
+import type { MovementDirection } from '../types/generated/MovementDirection'
+import type { CorrectionReason } from '../types/generated/CorrectionReason'
+import type { MovementHistoryRow } from '../types/generated/MovementHistoryRow'
 import { interpolateCensoredDemand } from '../utils/forecasting'
 import { useUOMTranslator } from './useUOMTranslator'
 
 export interface LogMovementPayload {
   direction: MovementDirection
   client_id?: string
-  correction_reason?: CorrectionReason
+  correction_reason?: CorrectionReason | null
   notes?: string
   lines: Array<{
     item_id: string
@@ -18,11 +21,6 @@ export interface LogMovementPayload {
     recorded_unit?: string
     multiplier?: number
   }>
-}
-
-export interface MovementHistoryRow extends Movement {
-  item_label: string
-  quantity: number
 }
 
 export function useLedger() {
@@ -36,85 +34,14 @@ export function useLedger() {
     
     loading.value = true
     try {
-      const db = await useDatabase()
-      const movementId = uuidv4()
-      
-      const encryptedNotes = payload.notes ? await encryptField(payload.notes, activeCryptoKey.value) : null
-      
-      await db.execute('BEGIN TRANSACTION')
-      
-      try {
-        const tz = currentWorkspace.value.timezone || 'UTC'
-        const localDate = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date())
-
-        await db.execute(
-          `INSERT INTO movements (id, workspace_id, direction, client_id, correction_reason, notes, local_date) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            movementId, 
-            currentWorkspace.value.id, 
-            payload.direction, 
-            payload.client_id || null, 
-            payload.correction_reason || null, 
-            encryptedNotes,
-            localDate
-          ]
-        )
-
-        for (const line of payload.lines) {
-          const finalQuantity = translateToBase(line.quantity, line.multiplier || 1)
-          if (finalQuantity <= 0) continue;
-
-          // PRE-FLIGHT CHECK: Prevent Negative Inventory
-          if (payload.direction === 'USE' || payload.direction === 'SEND') {
-            const itemRes = await db.select<{current_stock: number}[]>(
-              `SELECT current_stock FROM items WHERE id = $1 AND workspace_id = $2`,
-              [line.item_id, currentWorkspace.value.id]
-            )
-            if (itemRes.length > 0) {
-              const currentStock = itemRes[0].current_stock
-              if (finalQuantity > currentStock) {
-                throw new Error(`Insufficient stock for item. You cannot send/use ${finalQuantity} units when only ${currentStock} are available.`)
-              }
-            }
-          }
-          
-          await db.execute(
-            `INSERT INTO movement_line_items (id, movement_id, item_id, quantity, recorded_unit) 
-             VALUES ($1, $2, $3, $4, $5)`,
-            [uuidv4(), movementId, line.item_id, finalQuantity, line.recorded_unit || null]
-          )
-
-          if (payload.direction === 'RECEIVE' || payload.direction === 'CORRECT' || payload.direction === 'COLLECT') {
-            await db.execute(
-              `UPDATE items SET current_stock = current_stock + $1 WHERE id = $2 AND workspace_id = $3`,
-              [finalQuantity, line.item_id, currentWorkspace.value.id]
-            )
-          } else if (payload.direction === 'USE' || payload.direction === 'SEND') {
-            await db.execute(
-              `UPDATE items SET current_stock = current_stock - $1 WHERE id = $2 AND workspace_id = $3`,
-              [finalQuantity, line.item_id, currentWorkspace.value.id]
-            )
-          }
-          
-          if (payload.client_id && (payload.direction === 'SEND' || payload.direction === 'COLLECT')) {
-            const balanceDelta = payload.direction === 'SEND' ? finalQuantity : -finalQuantity;
-            await db.execute(
-              `INSERT INTO client_item_balances (id, workspace_id, client_id, item_id, balance)
-               VALUES ($1, $2, $3, $4, $5)
-               ON CONFLICT(workspace_id, client_id, item_id) 
-               DO UPDATE SET balance = balance + excluded.balance`,
-              [uuidv4(), currentWorkspace.value.id, payload.client_id, line.item_id, balanceDelta]
-            )
-          }
-        }
-        
-        await db.execute('COMMIT')
-        return movementId
-      } catch (err) {
-        await db.execute('ROLLBACK')
-        throw err
+      const rustPayload = {
+        ...payload,
+        workspace_id: currentWorkspace.value.id,
+        timezone: currentWorkspace.value.timezone || 'UTC'
       }
+      
+      const movementId = await invoke<string>('log_movement', { payload: rustPayload })
+      return movementId
     } catch (e) {
       console.error('Failed to log movement:', e)
       throw e
@@ -126,29 +53,10 @@ export function useLedger() {
   async function fetchClientHistory(clientId: string): Promise<MovementHistoryRow[]> {
     if (!currentWorkspace.value) return []
     try {
-      const db = await useDatabase()
-      const query = `
-        SELECT 
-          m.*,
-          mli.quantity,
-          i.label as item_label
-        FROM movements m
-        JOIN movement_line_items mli ON m.id = mli.movement_id
-        JOIN items i ON mli.item_id = i.id
-        WHERE m.workspace_id = $1 AND m.client_id = $2
-        ORDER BY m.timestamp DESC
-      `
-      const result = await db.select<MovementHistoryRow[]>(query, [currentWorkspace.value.id, clientId])
-      
-      // Decrypt sensitive fields
-      for (const row of result) {
-        row.item_label = await decryptField(row.item_label, activeCryptoKey.value)
-        if (row.notes) {
-          row.notes = await decryptField(row.notes, activeCryptoKey.value) || null
-        }
-      }
-      
-      return result
+      return await invoke<MovementHistoryRow[]>('fetch_client_history', { 
+        workspaceId: currentWorkspace.value.id, 
+        clientId 
+      })
     } catch (e) {
       console.error('Failed to fetch client history:', e)
       return []
@@ -158,29 +66,9 @@ export function useLedger() {
   async function fetchGlobalHistory(): Promise<MovementHistoryRow[]> {
     if (!currentWorkspace.value) return []
     try {
-      const db = await useDatabase()
-      const query = `
-        SELECT 
-          m.*,
-          mli.quantity,
-          i.label as item_label
-        FROM movements m
-        JOIN movement_line_items mli ON m.id = mli.movement_id
-        JOIN items i ON mli.item_id = i.id
-        WHERE m.workspace_id = $1
-        ORDER BY m.timestamp DESC
-      `
-      const result = await db.select<MovementHistoryRow[]>(query, [currentWorkspace.value.id])
-      
-      // Decrypt sensitive fields
-      for (const row of result) {
-        row.item_label = await decryptField(row.item_label, activeCryptoKey.value)
-        if (row.notes) {
-          row.notes = await decryptField(row.notes, activeCryptoKey.value) || null
-        }
-      }
-      
-      return result
+      return await invoke<MovementHistoryRow[]>('fetch_global_history', { 
+        workspaceId: currentWorkspace.value.id 
+      })
     } catch (e) {
       console.error('Failed to fetch global history:', e)
       return []
@@ -286,22 +174,7 @@ export function useLedger() {
   }) {
     if (!currentWorkspace.value) return
     try {
-      const db = await useDatabase()
-      await db.execute(
-        `INSERT INTO forecast_audit_logs 
-         (item_id, model_used, input_snapshot, base_prediction, human_override_percentage, human_adjustment_qty, override_reason, final_prediction)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          payload.item_id,
-          payload.model_used,
-          payload.input_snapshot,
-          payload.base_prediction,
-          payload.human_override_percentage,
-          payload.human_adjustment_qty,
-          payload.override_reason,
-          payload.final_prediction
-        ]
-      )
+      await invoke('save_forecast_audit', { payload })
     } catch (e) {
       console.error('Failed to save forecast audit:', e)
     }
