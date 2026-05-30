@@ -6,9 +6,9 @@ export type UomDefinition = {
 }
 
 export type DisplayTranslation = {
+  is_negative: boolean
   whole_units: number
   remainder: number
-  formatted: string
   is_fractional: boolean
 }
 
@@ -55,9 +55,9 @@ export function useUOMTranslator() {
     // Special Case: 1-to-1 mapping (e.g. Base UOM is used directly)
     if (multiplier === 1) {
       return {
-        whole_units: base_stock,
+        is_negative: base_stock < 0,
+        whole_units: Math.abs(base_stock),
         remainder: 0,
-        formatted: `${base_stock} ${uom_name}`,
         is_fractional: false
       }
     }
@@ -71,21 +71,10 @@ export function useUOMTranslator() {
     const raw_remainder = abs_base - (whole_units * multiplier)
     const remainder = Math.round(raw_remainder * 10000) / 10000
 
-    let formatted = ''
-    if (whole_units > 0 && remainder > 0) {
-      formatted = `${is_negative ? '-' : ''}${whole_units} ${uom_name}, ${remainder} ${base_name}`
-    } else if (whole_units > 0) {
-      formatted = `${is_negative ? '-' : ''}${whole_units} ${uom_name}`
-    } else if (remainder > 0) {
-      formatted = `${is_negative ? '-' : ''}${remainder} ${base_name}`
-    } else {
-      formatted = `0 ${uom_name}`
-    }
-
     return {
-      whole_units: is_negative ? -whole_units : whole_units,
-      remainder: is_negative ? -remainder : remainder,
-      formatted,
+      is_negative,
+      whole_units,
+      remainder,
       is_fractional: remainder > 0
     }
   }

@@ -10,13 +10,14 @@
         <div class="relative flex-1 md:w-64">
           <UIcon name="i-lucide-search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input 
+            data-testid="item-search-input"
             v-model="searchQuery" 
             type="text" 
             placeholder="Search items..." 
             class="lh-input pl-9 w-full"
           />
         </div>
-        <button @click="isAddModalOpen = true" class="lh-btn lh-btn-primary whitespace-nowrap">
+        <button data-testid="add-item-btn" @click="isAddModalOpen = true" class="lh-btn lh-btn-primary whitespace-nowrap">
           <UIcon name="i-lucide-plus" class="w-4 h-4 md:mr-2" />
           <span class="hidden md:inline">Add Item</span>
         </button>
@@ -57,7 +58,7 @@
               {{ item.label }}
               <span v-if="item.deleted_at" class="ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Archived</span>
             </h3>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+            <span data-testid="primary-uom-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
               {{ item.primary_uom_id ? item.uoms?.find(u => u.id === item.primary_uom_id)?.unit_name || item.base_unit_name : item.base_unit_name }}
             </span>
           </div>
@@ -69,7 +70,7 @@
               <span :class="[
                 'text-lg font-bold',
                 (item.current_stock <= (item.reorder_point || 0)) ? 'text-[var(--lh-danger)]' : 'text-[var(--lh-ink-primary)]'
-              ]">{{ formatStock(item) }}</span>
+              ]"><span data-testid="stock-display">{{ formatStock(item) }}</span></span>
             </div>
             <div v-if="item.reorder_point !== null" class="flex items-center justify-between">
               <span class="text-xs text-[var(--lh-ink-secondary)]">Reorder Point</span>
@@ -77,10 +78,10 @@
             </div>
             
             <div class="mt-4 grid grid-cols-2 gap-2" v-if="!item.deleted_at">
-              <button @click="openInventorySlideover(item, false)" class="lh-btn lh-btn-secondary !text-red-600 dark:!text-red-400 !border-red-200 hover:!bg-red-50 dark:!border-red-900/50 dark:hover:!bg-red-900/20 !py-1.5 !text-xs justify-center">
+              <button data-testid="use-stock-btn" @click="openInventorySlideover(item, false)" class="lh-btn lh-btn-secondary !text-red-600 dark:!text-red-400 !border-red-200 hover:!bg-red-50 dark:!border-red-900/50 dark:hover:!bg-red-900/20 !py-1.5 !text-xs justify-center">
                 Use Stock
               </button>
-              <button @click="openInventorySlideover(item, true)" class="lh-btn lh-btn-secondary !text-green-600 dark:!text-green-400 !border-green-200 hover:!bg-green-50 dark:!border-green-900/50 dark:hover:!bg-green-900/20 !py-1.5 !text-xs justify-center">
+              <button data-testid="receive-stock-btn" @click="openInventorySlideover(item, true)" class="lh-btn lh-btn-secondary !text-green-600 dark:!text-green-400 !border-green-200 hover:!bg-green-50 dark:!border-green-900/50 dark:hover:!bg-green-900/20 !py-1.5 !text-xs justify-center">
                 Receive
               </button>
             </div>
@@ -129,6 +130,7 @@
           <div>
             <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">Item Label</label>
             <input 
+              data-testid="item-label-input"
               v-model="newItemForm.label" 
               type="text" 
               required 
@@ -159,7 +161,7 @@
           </div>
           <div class="flex justify-end space-x-3 pt-4">
             <button type="button" @click="isAddModalOpen = false" class="lh-btn lh-btn-secondary">Cancel</button>
-            <button type="submit" class="lh-btn lh-btn-primary" :disabled="!newItemForm.label">Save Item</button>
+            <button data-testid="submit-item-btn" type="submit" class="lh-btn lh-btn-primary" :disabled="!newItemForm.label">Save Item</button>
           </div>
         </form>
       </div>
@@ -211,7 +213,22 @@ function formatStock(item: any) {
   const primaryUom = item.uoms?.find((u: any) => u.id === item.primary_uom_id);
   const multiplier = primaryUom ? primaryUom.multiplier : 1.0;
   const unitName = primaryUom ? primaryUom.unit_name : item.base_unit_name;
-  return translateToDisplay(item.current_stock, multiplier, unitName, item.base_unit_name).formatted;
+  
+  const { is_negative, whole_units, remainder } = translateToDisplay(item.current_stock, multiplier, unitName, item.base_unit_name);
+  
+  // Natively reconstruct the string (Later, this will be handled by $t('uom.stock_format', {...}))
+  let text = '';
+  if (whole_units > 0 && remainder > 0) {
+    text = `${whole_units} ${unitName}, ${remainder} ${item.base_unit_name}`
+  } else if (whole_units > 0) {
+    text = `${whole_units} ${unitName}`
+  } else if (remainder > 0) {
+    text = `${remainder} ${item.base_unit_name}`
+  } else {
+    text = `0 ${unitName}`
+  }
+
+  return is_negative ? `-${text}` : text;
 }
 
 function openInventorySlideover(item: Item, receiving: boolean) {
