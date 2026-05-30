@@ -1,16 +1,21 @@
 use tauri_plugin_sql::{Migration, MigrationKind};
 use tauri_plugin_shell::ShellExt;
+use std::time::Duration;
 
 #[tauri::command]
 async fn run_ml_forecast(app_handle: tauri::AppHandle, history: String, horizon: u32) -> Result<String, String> {
     let sidecar_command = app_handle.shell().sidecar("forecast")
         .map_err(|e| format!("Failed to create sidecar command: {}", e))?;
 
-    let output = sidecar_command
-        .args(["--history", &history, "--horizon", &horizon.to_string()])
-        .output()
-        .await
-        .map_err(|e| format!("Failed to execute sidecar: {}", e))?;
+    let output = tokio::time::timeout(
+        Duration::from_secs(30),
+        sidecar_command
+            .args(["--history", &history, "--horizon", &horizon.to_string()])
+            .output()
+    )
+    .await
+    .map_err(|_| "Sidecar timed out after 30 seconds. The forecast process may be stalled.".to_string())?
+    .map_err(|e| format!("Failed to execute sidecar: {}", e))?;
 
     if output.status.success() {
         let result = String::from_utf8(output.stdout).map_err(|e| e.to_string())?;
@@ -23,12 +28,20 @@ async fn run_ml_forecast(app_handle: tauri::AppHandle, history: String, horizon:
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let migrations = vec![Migration {
-        version: 1,
-        description: "init_schema",
-        sql: include_str!("../migrations/1_init.sql"),
-        kind: MigrationKind::Up,
-    }];
+    let migrations = vec![
+        Migration {
+            version: 1,
+            description: "init_schema",
+            sql: include_str!("../migrations/1_init.sql"),
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 2,
+            description: "enterprise_upgrades",
+            sql: include_str!("../migrations/2_enterprise.sql"),
+            kind: MigrationKind::Up,
+        }
+    ];
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -39,6 +52,13 @@ pub fn run() {
         )
         .invoke_handler(tauri::generate_handler![run_ml_forecast])
         .setup(|app| {
+            // Strictly Enforce Enterprise Data Integrity
+            tauri::async_runtime::block_on(async {
+                if let Ok(db) = tauri_plugin_sql::core::Db::load("sqlite:logihex.db").await {
+                    let _ = db.execute("PRAGMA foreign_keys = ON;", vec![]).await;
+                }
+            });
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
