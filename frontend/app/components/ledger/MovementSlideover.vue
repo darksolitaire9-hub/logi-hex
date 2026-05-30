@@ -91,6 +91,7 @@
 import { ref, computed, watch } from 'vue'
 import { useItems } from '../../composables/useItems'
 import { useLedger } from '../../composables/useLedger'
+import { useSelfHealingUI } from '../../utils/errorDomains'
 import type { CorrectionReason } from '../../types/domain'
 
 const props = defineProps<{
@@ -111,6 +112,7 @@ const isOpen = computed({
 
 const { items, loading: itemsLoading, fetchItems } = useItems()
 const { logMovement, loading: isSubmitting } = useLedger()
+const ui = useSelfHealingUI()
 
 // State
 const quantities = ref<Record<string, number>>({})
@@ -134,7 +136,10 @@ const hasQuantities = computed(() => {
 })
 
 async function handleSubmit() {
-  if (!hasQuantities.value) return
+  if (!hasQuantities.value) {
+    ui.handleUXError('VALIDATION', 'Please enter a valid quantity.')
+    return
+  }
 
   // Build the lines array filtering out 0s
   const lines = Object.entries(quantities.value)
@@ -154,10 +159,16 @@ async function handleSubmit() {
       lines
     })
 
+    ui.handleUXSuccess('Movement Logged', `Successfully logged transaction.`)
     isOpen.value = false
     emit('success')
-  } catch (e) {
-    alert('Failed to log movement. See console for details.')
+  } catch (e: any) {
+    if (e.message?.toLowerCase().includes('database is locked')) {
+      ui.handleUXError('DATABASE_LOCKED')
+    } else {
+      ui.handleUXError('UNKNOWN')
+      console.error(e)
+    }
   }
 }
 </script>
