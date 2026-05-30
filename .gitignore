@@ -33,3 +33,9 @@ src-tauri/target/
 .idea/
 .DS_Store
 Thumbs.db
+
+# PyInstaller and Sidecar Binaries
+build/
+dist/
+*.spec
+frontend/src-tauri/binaries/

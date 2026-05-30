@@ -8,13 +8,13 @@ async fn run_ml_forecast(app_handle: tauri::AppHandle, history: String, horizon:
         .map_err(|e| format!("Failed to create sidecar command: {}", e))?;
 
     let output = tokio::time::timeout(
-        Duration::from_secs(30),
+        Duration::from_secs(180),
         sidecar_command
             .args(["--history", &history, "--horizon", &horizon.to_string()])
             .output()
     )
     .await
-    .map_err(|_| "Sidecar timed out after 30 seconds. The forecast process may be stalled.".to_string())?
+    .map_err(|_| "Sidecar timed out after 180 seconds. The forecast process may be stalled or downloading the model weights.".to_string())?
     .map_err(|e| format!("Failed to execute sidecar: {}", e))?;
 
     if output.status.success() {

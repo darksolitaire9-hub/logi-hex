@@ -1,39 +1,61 @@
 import sys
 import json
 import argparse
-import random
+import os
+import contextlib
 
 def main():
-    parser = argparse.ArgumentParser(description="Logi-Hex TimesFM Forecasting Stub")
-    parser.add_argument("--history", type=str, required=True, help="JSON string of historical data points")
+    parser = argparse.ArgumentParser(description="Logi-Hex TimesFM Forecasting Sidecar")
+    parser.add_argument("--history", type=str, required=True, help="JSON string of historical data points (list of floats)")
     parser.add_argument("--horizon", type=int, default=30, help="Number of future points to predict")
     
     args = parser.parse_args()
     
     try:
-        # 1. Parse historical data (e.g. daily item usage)
+        # 1. Parse historical data
         history_data = json.loads(args.history)
-        
-        # 2. In production, this is where we invoke TimesFM:
-        # import timesfm
-        # tfm = timesfm.TimesFm(...)
-        # tfm.load_from_checkpoint(...)
-        # forecast = tfm.forecast(history_data, horizon=args.horizon)
-        
-        # For now, we mock the forecast by returning a simple trend based on the last value
-        if len(history_data) == 0:
-            last_val = 0
-        else:
-            last_val = history_data[-1]
+        if not isinstance(history_data, list):
+            raise ValueError("History must be a JSON list of numbers")
             
-        forecast = [max(0, last_val + random.uniform(-2, 2)) for _ in range(args.horizon)]
+        history = [float(x) for x in history_data]
         
-        # 3. Return JSON to stdout for Rust to capture
+        # TimesFM requires some historical data.
+        # If history is empty or extremely short, pad/create a default history.
+        if not history:
+            history = [0.0]
+            
+        # 2. Invoke TimesFM with stdout silenced
+        # We redirect stdout to devnull so that library print statements don't pollute the JSON output.
+        with open(os.devnull, 'w') as devnull:
+            with contextlib.redirect_stdout(devnull):
+                import timesfm
+                
+                # We specify backend="cpu" for local CPU inference.
+                # Under Windows, TimesFM uses PyTorch on CPU.
+                tfm = timesfm.TimesFm(
+                    hparams=timesfm.TimesFmHparams(
+                        backend="cpu",
+                        per_core_batch_size=32,
+                        horizon_len=args.horizon,
+                    ),
+                    checkpoint=timesfm.TimesFmCheckpoint(
+                        huggingface_repo_id="google/timesfm-1.0-200m-pytorch"
+                    ),
+                )
+                
+                forecast_input = [history]
+                freq = [0]  # 0 = irregular/daily
+                point_forecast, _ = tfm.forecast(forecast_input, freq=freq)
+                
+                # point_forecast shape is [batch_size, horizon_len]
+                # We take the first series forecast
+                forecast_list = point_forecast[0].tolist()
+        
+        # 3. Print the final clean JSON to stdout
         result = {
             "status": "success",
-            "forecast": forecast
+            "forecast": forecast_list
         }
-        
         print(json.dumps(result))
         sys.exit(0)
         

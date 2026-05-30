@@ -61,9 +61,12 @@
           <p class="text-xs text-[var(--lh-ink-secondary)] mt-1">Select an item and run the sidecar to generate predictions.</p>
         </div>
 
-        <div v-else-if="isForecasting" class="flex-1 flex flex-col items-center justify-center">
+        <div v-else-if="isForecasting" class="flex-1 flex flex-col items-center justify-center text-center px-6">
           <UIcon name="i-lucide-brain-circuit" class="w-12 h-12 text-[var(--lh-brand)] animate-pulse mb-4" />
-          <p class="text-sm font-medium text-[var(--lh-brand)]">Spawning isolated Python JIT process...</p>
+          <p class="text-sm font-medium text-[var(--lh-ink-primary)]">Running TimesFM Machine Learning Model...</p>
+          <p class="text-xs text-[var(--lh-ink-secondary)] mt-2 max-w-md">
+            Note: On the first run, the sidecar will download ~200MB of pre-trained model weights from HuggingFace. This can take 1–3 minutes depending on your internet connection. Subsequent runs will be instantaneous.
+          </p>
         </div>
 
         <div v-else class="flex-1 flex flex-col">
@@ -97,6 +100,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { useItems } from '../../../composables/useItems'
 import { useDatabase } from '../../../composables/useDatabase'
 import { useWorkspace } from '../../../composables/useWorkspace'
+import { useLedger } from '../../../composables/useLedger'
 
 definePageMeta({
   layout: 'default'
@@ -104,6 +108,7 @@ definePageMeta({
 
 const { currentWorkspace } = useWorkspace()
 const { items, fetchItems } = useItems()
+const { getItemMovementHistory } = useLedger()
 
 const selectedItemId = ref('')
 const horizon = ref(30)
@@ -128,15 +133,16 @@ async function runForecast() {
   forecastResult.value = null
   
   try {
-    const db = await useDatabase()
+    const history = await getItemMovementHistory(selectedItemId.value)
     
-    // In a real app, we'd fetch the daily usage history from movements.
-    // We'll mock a short history array for the sidecar input.
-    const mockHistory = [10, 12, 11, 15, 14, 18, 17, 20, 22]
+    if (history.length === 0) {
+      error.value = 'No movement history found for this item. Please log some movements (e.g. Receive, Send, Use) to generate a forecast.'
+      return
+    }
     
-    // Invoke the Rust command, which spawns the PyInstaller sidecar
+    // Invoke the Rust command, which spawns the Python sidecar
     const responseJson = await invoke<string>('run_ml_forecast', {
-      history: JSON.stringify(mockHistory),
+      history: JSON.stringify(history),
       horizon: horizon.value
     })
     
