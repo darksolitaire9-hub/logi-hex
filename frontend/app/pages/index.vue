@@ -2,8 +2,8 @@
   <div class="lh-card shadow-xl border-gray-200 dark:border-gray-800">
     <div class="text-center mb-6">
       <div v-if="!currentWorkspace">
-        <h2 class="text-xl font-semibold text-[var(--lh-ink-primary)]">Select Workspace</h2>
-        <p class="text-sm text-[var(--lh-ink-secondary)] mt-1">Choose a workspace to unlock</p>
+        <h2 class="text-xl font-semibold text-[var(--lh-ink-primary)]">{{ $t('login.title') }}</h2>
+        <p class="text-sm text-[var(--lh-ink-secondary)] mt-1">{{ $t('login.subtitle') }}</p>
       </div>
       <div v-else>
         <div class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
@@ -11,7 +11,7 @@
         </div>
         <h2 class="text-xl font-semibold text-[var(--lh-ink-primary)]">{{ currentWorkspace.name }}</h2>
         <p class="text-sm text-[var(--lh-ink-secondary)] mt-1">
-          {{ currentWorkspace.mode === 'ACCOUNTS' ? 'Accounts Mode' : 'Inventory Mode' }}
+          {{ currentWorkspace.mode === 'ACCOUNTS' ? $t('login.modes.accounts') : $t('login.modes.inventory') }}
         </p>
       </div>
     </div>
@@ -21,15 +21,15 @@
     </div>
 
     <div v-else-if="workspaces.length === 0" class="text-center py-4">
-      <p class="text-sm text-[var(--lh-ink-secondary)] mb-4">No workspaces found.</p>
+      <p class="text-sm text-[var(--lh-ink-secondary)] mb-4">{{ $t('login.empty.text') }}</p>
       <NuxtLink to="/onboarding" class="lh-btn lh-btn-primary w-full inline-flex">
-        Create Workspace
+        {{ $t('login.empty.button') }}
       </NuxtLink>
     </div>
 
     <form v-else-if="currentWorkspace" @submit.prevent="handleUnlock" class="space-y-4">
-      <div v-if="currentWorkspace.password_hash">
-        <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">Enter Security PIN</label>
+      <div v-if="currentWorkspace.pin_hash">
+        <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">{{ $t('login.fields.pin.label') }}</label>
         <input 
           v-model="pin"
           type="password" 
@@ -41,7 +41,7 @@
         <p v-if="errorMsg" class="text-sm text-[var(--lh-danger)] mt-2 text-center">{{ errorMsg }}</p>
       </div>
       <div v-else class="py-2 text-center">
-        <p class="text-sm text-[var(--lh-ink-secondary)]">This workspace is unlocked.</p>
+        <p class="text-sm text-[var(--lh-ink-secondary)]">{{ $t('login.status.unlocked') }}</p>
       </div>
 
       <div class="pt-4 space-y-3">
@@ -50,7 +50,7 @@
           class="lh-btn lh-btn-primary w-full"
         >
           <UIcon name="i-lucide-unlock" class="w-4 h-4 mr-2" />
-          {{ currentWorkspace.password_hash ? 'Unlock' : 'Enter Workspace' }}
+          {{ currentWorkspace.pin_hash ? $t('login.buttons.unlock') : $t('login.buttons.enter') }}
         </button>
 
         <button 
@@ -59,7 +59,7 @@
           @click="clearCurrentWorkspace"
           class="lh-btn lh-btn-secondary w-full"
         >
-          Switch Workspace
+          {{ $t('login.buttons.switch') }}
         </button>
       </div>
     </form>
@@ -78,8 +78,8 @@
         <div class="flex-1">
           <div class="font-medium text-[var(--lh-ink-primary)]">{{ ws.name }}</div>
           <div class="text-xs text-[var(--lh-ink-secondary)]">
-            <UIcon v-if="ws.password_hash" name="i-lucide-lock" class="w-3 h-3 inline mr-1" />
-            {{ ws.mode === 'ACCOUNTS' ? 'Accounts' : 'Inventory' }}
+            <UIcon v-if="ws.pin_hash" name="i-lucide-lock" class="w-3 h-3 inline mr-1" />
+            {{ ws.mode === 'ACCOUNTS' ? $t('login.workspaceList.accounts') : $t('login.workspaceList.inventory') }}
           </div>
         </div>
       </button>
@@ -87,7 +87,7 @@
       <div class="pt-4 border-t border-[var(--lh-border-subtle)] mt-4">
         <NuxtLink to="/onboarding" class="text-sm text-[var(--lh-brand)] hover:underline flex items-center justify-center">
           <UIcon name="i-lucide-plus" class="w-4 h-4 mr-1" />
-          Create another workspace
+          {{ $t('login.buttons.createAnother') }}
         </NuxtLink>
       </div>
     </div>
@@ -98,13 +98,15 @@
 import { ref, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWorkspace } from '../composables/useWorkspace'
+import { useSelfHealingUI } from '../utils/errorDomains'
 
 definePageMeta({
   layout: 'auth'
 })
 
 const router = useRouter()
-const { workspaces, currentWorkspace, loading, fetchWorkspaces, selectWorkspace } = useWorkspace()
+const { workspaces, currentWorkspace, loading, fetchWorkspaces, selectWorkspace, unlockWorkspaceCrypto } = useWorkspace()
+const ui = useSelfHealingUI()
 
 const pin = ref('')
 const errorMsg = ref('')
@@ -163,15 +165,18 @@ async function handleUnlock() {
 
   errorMsg.value = ''
 
-  if (currentWorkspace.value.password_hash) {
+  if (currentWorkspace.value.pin_hash) {
     const enteredHash = await hashPin(pin.value)
-    if (enteredHash !== currentWorkspace.value.password_hash) {
-      errorMsg.value = 'Incorrect PIN'
+    if (enteredHash !== currentWorkspace.value.pin_hash) {
+      ui.handleUXError('AUTH')
       pin.value = ''
       pinInput.value?.focus()
       return
     }
   }
+
+  // Auth successful! Unlock the WebCrypto Engine for this session.
+  await unlockWorkspaceCrypto(pin.value)
 
   // Set as active in composable
   await selectWorkspace(currentWorkspace.value.id)

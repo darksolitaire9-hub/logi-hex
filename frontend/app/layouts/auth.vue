@@ -6,6 +6,23 @@
       <div class="absolute top-[60%] -right-[10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-3xl"></div>
     </div>
     
+    <div class="fixed top-4 right-4 z-50">
+      <USelectMenu
+        v-model="locale"
+        :options="locales"
+        value-attribute="code"
+        option-attribute="name"
+        class="w-32"
+        size="sm"
+        color="gray"
+        variant="ghost"
+      >
+        <template #leading>
+          <UIcon name="i-lucide-globe" class="w-4 h-4 text-gray-500" />
+        </template>
+      </USelectMenu>
+    </div>
+
     <div class="w-full max-w-md w-full">
       <!-- App Branding -->
       <div class="flex flex-col items-center mb-8">
@@ -20,3 +37,9 @@
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { locale, locales } = useI18n()
+</script>

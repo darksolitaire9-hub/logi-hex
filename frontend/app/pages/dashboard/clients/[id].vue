@@ -116,6 +116,8 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDatabase } from '../../../composables/useDatabase'
 import { useLedger, type MovementHistoryRow } from '../../../composables/useLedger'
+import { useWorkspace } from '../../../composables/useWorkspace'
+import { decryptField } from '../../../utils/crypto'
 import type { Client } from '../../../types/domain'
 import MovementSlideover from '../../../components/ledger/MovementSlideover.vue'
 
@@ -127,6 +129,7 @@ const route = useRoute()
 const clientId = route.params.id as string
 
 const { fetchClientHistory } = useLedger()
+const { activeCryptoKey } = useWorkspace()
 
 // State
 const client = ref<Client | null>(null)
@@ -146,7 +149,10 @@ async function loadData() {
     // 1. Fetch Client Details
     const clientResult = await db.select<Client[]>('SELECT * FROM clients WHERE id = $1', [clientId])
     if (clientResult.length > 0) {
-      client.value = clientResult[0] || null
+      const c = clientResult[0]!
+      c.name = await decryptField(c.name, activeCryptoKey.value)
+      if (c.info) c.info = await decryptField(c.info, activeCryptoKey.value)
+      client.value = c
     }
 
     // 2. Fetch Live Balances grouping by item
@@ -169,9 +175,13 @@ async function loadData() {
       WHERE m.client_id = $1
       GROUP BY i.id
       HAVING balance > 0
-      ORDER BY i.label ASC
+      ORDER BY i.created_at ASC
     `
-    balances.value = await db.select<typeof balances.value>(balanceQuery, [clientId])
+    const balResult = await db.select<typeof balances.value>(balanceQuery, [clientId])
+    for (const b of balResult) {
+      b.label = await decryptField(b.label, activeCryptoKey.value)
+    }
+    balances.value = balResult
 
     // 3. Fetch Chronological History
     history.value = await fetchClientHistory(clientId)
