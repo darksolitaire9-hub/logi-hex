@@ -28,8 +28,20 @@ vi.mock('../../utils/errorDomains', () => ({
   })
 }))
 
+// Mock vue-i18n
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    n: (num: number) => String(num)
+  })
+}))
+
 // Mock UIcon and Nuxt UI components
 const globalMocks = {
+  mocks: {
+    $t: (key: string) => key,
+    $n: (num: number) => String(num)
+  },
   stubs: {
     USlideover: {
       template: '<div><slot></slot></div>',

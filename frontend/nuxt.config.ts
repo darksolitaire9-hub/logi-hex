@@ -6,14 +6,16 @@ export default defineNuxtConfig({
   modules: ["@nuxt/ui", "@nuxtjs/i18n"],
   i18n: {
     locales: [
-      { code: 'en', file: 'en.json', name: 'English' },
-      { code: 'es', file: 'es.json', name: 'Español' },
-      { code: 'ja', file: 'ja.json', name: '日本語' }
+      { code: 'en', files: ['en/core.json', 'en/inventory.json'], name: 'English' },
+      // Other languages would replicate this split structure
     ],
     defaultLocale: 'en',
     strategy: 'no_prefix',
     lazy: true,
-    langDir: 'locales',
+    langDir: 'locales/',
+    types: 'composition',
+    defaultDirection: 'auto',
+    vueI18n: './i18n.config.ts'
   },
   css: ["~/assets/css/main.css"],
 

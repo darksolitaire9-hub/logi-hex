@@ -2,8 +2,8 @@
   <div>
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
       <div>
-        <h1 class="text-2xl font-semibold text-[var(--lh-ink-primary)]">Item Catalog</h1>
-        <p class="text-sm text-[var(--lh-ink-secondary)] mt-1">Manage the predefined items you track in this workspace.</p>
+        <h1 class="text-2xl font-semibold text-[var(--lh-ink-primary)]">{{ $t('catalog.title') }}</h1>
+        <p class="text-sm text-[var(--lh-ink-secondary)] mt-1">{{ $t('catalog.description') }}</p>
       </div>
 
       <div class="flex items-center space-x-3 w-full md:w-auto">
@@ -13,13 +13,13 @@
             data-testid="item-search-input"
             v-model="searchQuery" 
             type="text" 
-            placeholder="Search items..." 
+            :placeholder="$t('catalog.searchPlaceholder')" 
             class="lh-input pl-9 w-full"
           />
         </div>
         <button data-testid="add-item-btn" @click="isAddModalOpen = true" class="lh-btn lh-btn-primary whitespace-nowrap">
           <UIcon name="i-lucide-plus" class="w-4 h-4 md:mr-2" />
-          <span class="hidden md:inline">Add Item</span>
+          <span class="hidden md:inline">{{ $t('catalog.addItem') }}</span>
         </button>
       </div>
     </div>
@@ -33,16 +33,16 @@
       <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
         <UIcon name="i-lucide-package-open" class="w-8 h-8 text-gray-400" />
       </div>
-      <h3 class="text-lg font-medium text-[var(--lh-ink-primary)]">No items defined</h3>
-      <p class="text-sm text-[var(--lh-ink-secondary)] mt-1 mb-6">Create your first trackable item (e.g., Pallet, Crate, IBC Tote) to start sending them to clients.</p>
+      <h3 class="text-lg font-medium text-[var(--lh-ink-primary)]">{{ $t('catalog.emptyState.title') }}</h3>
+      <p class="text-sm text-[var(--lh-ink-secondary)] mt-1 mb-6">{{ $t('catalog.emptyState.description') }}</p>
       <button @click="isAddModalOpen = true" class="lh-btn lh-btn-primary mx-auto">
-        Create First Item
+        {{ $t('catalog.emptyState.button') }}
       </button>
     </div>
 
     <div v-else-if="filteredItems.length === 0" class="lh-card text-center py-12">
-      <h3 class="text-lg font-medium text-[var(--lh-ink-primary)]">No items match your search</h3>
-      <p class="text-sm text-[var(--lh-ink-secondary)] mt-1">Try a different label or filter.</p>
+      <h3 class="text-lg font-medium text-[var(--lh-ink-primary)]">{{ $t('catalog.noMatchState.title') }}</h3>
+      <p class="text-sm text-[var(--lh-ink-secondary)] mt-1">{{ $t('catalog.noMatchState.description') }}</p>
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -56,7 +56,7 @@
           <div class="flex items-center justify-between">
             <h3 class="font-medium text-[var(--lh-ink-primary)] flex items-center">
               {{ item.label }}
-              <span v-if="item.deleted_at" class="ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400">Archived</span>
+              <span v-if="item.deleted_at" class="ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400">{{ $t('status.archived') }}</span>
             </h3>
             <span data-testid="primary-uom-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
               {{ item.primary_uom_id ? item.uoms?.find(u => u.id === item.primary_uom_id)?.unit_name || item.base_unit_name : item.base_unit_name }}
@@ -66,41 +66,41 @@
           <!-- Inventory Mode Extensions -->
           <div v-if="currentWorkspace?.mode === 'INVENTORY'" class="mt-4">
             <div class="flex items-center justify-between mb-1">
-              <span class="text-sm text-[var(--lh-ink-secondary)]">Current Stock</span>
+              <span class="text-sm text-[var(--lh-ink-secondary)]">{{ $t('itemCard.currentStock') }}</span>
               <span :class="[
                 'text-lg font-bold',
                 (item.current_stock <= (item.reorder_point || 0)) ? 'text-[var(--lh-danger)]' : 'text-[var(--lh-ink-primary)]'
               ]"><span data-testid="stock-display">{{ formatStock(item) }}</span></span>
             </div>
             <div v-if="item.reorder_point !== null" class="flex items-center justify-between">
-              <span class="text-xs text-[var(--lh-ink-secondary)]">Reorder Point</span>
+              <span class="text-xs text-[var(--lh-ink-secondary)]">{{ $t('itemCard.reorderPoint') }}</span>
               <span class="text-xs font-medium text-[var(--lh-ink-secondary)]">{{ item.reorder_point }}</span>
             </div>
             
             <div class="mt-4 grid grid-cols-2 gap-2" v-if="!item.deleted_at">
               <button data-testid="use-stock-btn" @click="openInventorySlideover(item, false)" class="lh-btn lh-btn-secondary !text-red-600 dark:!text-red-400 !border-red-200 hover:!bg-red-50 dark:!border-red-900/50 dark:hover:!bg-red-900/20 !py-1.5 !text-xs justify-center">
-                Use Stock
+                {{ $t('itemCard.useStockBtn') }}
               </button>
               <button data-testid="receive-stock-btn" @click="openInventorySlideover(item, true)" class="lh-btn lh-btn-secondary !text-green-600 dark:!text-green-400 !border-green-200 hover:!bg-green-50 dark:!border-green-900/50 dark:hover:!bg-green-900/20 !py-1.5 !text-xs justify-center">
-                Receive
+                {{ $t('itemCard.receiveBtn') }}
               </button>
             </div>
           </div>
 
           <!-- Accounts Mode Info -->
-          <p v-else class="text-xs text-[var(--lh-ink-secondary)] mt-2">Added {{ new Date(item.created_at).toLocaleDateString() }}</p>
+          <p v-else class="text-xs text-[var(--lh-ink-secondary)] mt-2">{{ $t('catalog.addedDate', { date: new Date(item.created_at).toLocaleDateString() }) }}</p>
         </div>
         
         <div class="mt-4 pt-4 border-t border-[var(--lh-border-subtle)] flex items-center justify-between">
           <button v-if="!item.deleted_at && currentWorkspace?.mode === 'INVENTORY'" @click="openForecastSettings(item)" class="text-[var(--lh-brand)] hover:underline text-sm font-medium flex items-center">
             <UIcon name="i-lucide-bot" class="w-4 h-4 mr-1.5" />
-            AI Settings
+            {{ $t('itemCard.aiSettingsBtn') }}
           </button>
           <div class="flex-1"></div>
           <button v-if="!item.deleted_at" @click="handleDelete(item.id)" class="text-[var(--lh-danger)] hover:underline text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-            Archive
+            {{ $t('itemCard.archiveBtn') }}
           </button>
-          <span v-else class="text-sm font-medium text-gray-400">Archived Record</span>
+          <span v-else class="text-sm font-medium text-gray-400">{{ $t('itemCard.archivedRecord') }}</span>
         </div>
       </div>
     </div>
@@ -125,22 +125,22 @@
     <!-- Add Item Modal -->
     <UModal v-model="isAddModalOpen">
       <div class="p-6 bg-[var(--lh-bg-surface)] rounded-2xl border border-[var(--lh-border)] shadow-xl">
-        <h3 class="text-lg font-semibold text-[var(--lh-ink-primary)] mb-4">Add New Item</h3>
+        <h3 class="text-lg font-semibold text-[var(--lh-ink-primary)] mb-4">{{ $t('addModal.title') }}</h3>
         <form @submit.prevent="submitAdd" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">Item Label</label>
+            <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">{{ $t('addModal.labelInput') }}</label>
             <input 
               data-testid="item-label-input"
               v-model="newItemForm.label" 
               type="text" 
               required 
-              placeholder="e.g., Euro Pallet" 
+              :placeholder="$t('addModal.labelPlaceholder')" 
               class="lh-input"
             />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">Base Unit of Measure</label>
+              <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">{{ $t('addModal.baseUnitInput') }}</label>
               <select v-model="newItemForm.unit" class="lh-input" required>
                 <option value="Pieces">Pieces (pcs)</option>
                 <option value="Kilograms">Kilograms (kg)</option>
@@ -149,19 +149,19 @@
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">Reorder Point</label>
+              <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">{{ $t('addModal.reorderPointInput') }}</label>
               <input 
                 v-model.number="newItemForm.reorder_point" 
                 type="number" 
                 min="0"
-                placeholder="Alert Threshold" 
+                :placeholder="$t('addModal.reorderPlaceholder')" 
                 class="lh-input"
               />
             </div>
           </div>
           <div class="flex justify-end space-x-3 pt-4">
-            <button type="button" @click="isAddModalOpen = false" class="lh-btn lh-btn-secondary">Cancel</button>
-            <button data-testid="submit-item-btn" type="submit" class="lh-btn lh-btn-primary" :disabled="!newItemForm.label">Save Item</button>
+            <button type="button" @click="isAddModalOpen = false" class="lh-btn lh-btn-secondary">{{ $t('actions.cancel') }}</button>
+            <button data-testid="submit-item-btn" type="submit" class="lh-btn lh-btn-primary" :disabled="!newItemForm.label">{{ $t('addModal.saveBtn') }}</button>
           </div>
         </form>
       </div>
@@ -185,6 +185,7 @@ definePageMeta({
 const { currentWorkspace } = useWorkspace()
 const { items, loading, fetchItems, createItem, deleteItem } = useItems()
 const { translateToDisplay } = useUOMTranslator()
+const { t, n } = useI18n()
 
 const isAddModalOpen = ref(false)
 const newItemForm = ref<{ label: string, unit: string, reorder_point: number | null }>({ label: '', unit: 'Pieces', reorder_point: null })
@@ -216,16 +217,20 @@ function formatStock(item: any) {
   
   const { is_negative, whole_units, remainder } = translateToDisplay(item.current_stock, multiplier, unitName, item.base_unit_name);
   
-  // Natively reconstruct the string (Later, this will be handled by $t('uom.stock_format', {...}))
+  // Natively reconstruct the string using i18n placeholders and locale-aware number formatting
   let text = '';
+  
+  const formattedWhole = n(whole_units, 'decimal')
+  const formattedRemainder = n(remainder, 'decimal')
+
   if (whole_units > 0 && remainder > 0) {
-    text = `${whole_units} ${unitName}, ${remainder} ${item.base_unit_name}`
+    text = t('itemCard.stockFormat.both', { whole: formattedWhole, uom: unitName, remainder: formattedRemainder, base: item.base_unit_name })
   } else if (whole_units > 0) {
-    text = `${whole_units} ${unitName}`
+    text = t('itemCard.stockFormat.whole', { whole: formattedWhole, uom: unitName })
   } else if (remainder > 0) {
-    text = `${remainder} ${item.base_unit_name}`
+    text = t('itemCard.stockFormat.remainder', { remainder: formattedRemainder, base: item.base_unit_name })
   } else {
-    text = `0 ${unitName}`
+    text = t('itemCard.stockFormat.whole', { whole: n(0, 'decimal'), uom: unitName })
   }
 
   return is_negative ? `-${text}` : text;
@@ -254,7 +259,7 @@ async function submitAdd() {
 }
 
 async function handleDelete(id: string) {
-  if (confirm('Are you sure you want to delete this item? This may break historical records if it was used in movements.')) {
+  if (confirm(t('itemCard.confirmDelete'))) {
     await deleteItem(id)
   }
 }
