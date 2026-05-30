@@ -1,14 +1,18 @@
-import { useAuth } from "~/composables/useAuth";
+import { useWorkspace } from '~/composables/useWorkspace'
 
-export default defineNuxtRouteMiddleware((to) => {
-  // const { isAuthenticated } = useAuth();
-  // // If not authenticated, send to login (except when already there)
-  // if (!isAuthenticated.value && to.path !== "/login") {
-  //   return navigateTo("/login");
-  // }
-  // // If authenticated and trying to go to /login, send to home
-  // if (isAuthenticated.value && to.path === "/login") {
-  //   return navigateTo("/");
-  // }
-  // No setup/config guard for now — workspace picker lives at /setup
-});
+export default defineNuxtRouteMiddleware(async (to) => {
+  // Only guard dashboard routes
+  if (!to.path.startsWith('/dashboard')) return
+
+  const { currentWorkspace, restoreActiveWorkspace } = useWorkspace()
+
+  // Attempt to restore from localStorage before checking
+  if (!currentWorkspace.value) {
+    await restoreActiveWorkspace()
+  }
+
+  // If still no active workspace after restore, redirect to unlock screen
+  if (!currentWorkspace.value) {
+    return navigateTo('/')
+  }
+})
