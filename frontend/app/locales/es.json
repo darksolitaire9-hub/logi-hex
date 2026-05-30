@@ -1,0 +1,43 @@
+{
+  "onboarding": {
+    "title": "Crear Espacio de Trabajo",
+    "subtitle": "Configura tu primer centro de comando",
+    "fields": {
+      "name": {
+        "label": "Nombre del Espacio de Trabajo",
+        "placeholder": "ej. Almacén Principal"
+      },
+      "timezone": {
+        "label": "Zona Horaria"
+      },
+      "mode": {
+        "label": "Modo de Operación"
+      },
+      "userPin": {
+        "label": "PIN de Usuario",
+        "placeholder": "****"
+      },
+      "adminPin": {
+        "label": "PIN de Administrador",
+        "placeholder": "****"
+      }
+    },
+    "modes": {
+      "accounts": {
+        "title": "Cuentas",
+        "desc": "Seguimiento ciego de libros"
+      },
+      "inventory": {
+        "title": "Inventario",
+        "desc": "Stock y pronósticos"
+      }
+    },
+    "buttons": {
+      "create": "Crear Espacio de Trabajo",
+      "creating": "Creando..."
+    },
+    "errors": {
+      "failed": "Error al crear el espacio de trabajo"
+    }
+  }
+}

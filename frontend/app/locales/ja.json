@@ -1,0 +1,43 @@
+{
+  "onboarding": {
+    "title": "ワークスペースの作成",
+    "subtitle": "最初のコマンドセンターを設定する",
+    "fields": {
+      "name": {
+        "label": "ワークスペース名",
+        "placeholder": "例：メイン倉庫"
+      },
+      "timezone": {
+        "label": "タイムゾーン"
+      },
+      "mode": {
+        "label": "動作モード"
+      },
+      "userPin": {
+        "label": "ユーザーPIN",
+        "placeholder": "****"
+      },
+      "adminPin": {
+        "label": "管理者PIN",
+        "placeholder": "****"
+      }
+    },
+    "modes": {
+      "accounts": {
+        "title": "アカウント",
+        "desc": "ブラインド台帳の追跡"
+      },
+      "inventory": {
+        "title": "在庫",
+        "desc": "在庫と予測"
+      }
+    },
+    "buttons": {
+      "create": "ワークスペースを作成",
+      "creating": "作成中..."
+    },
+    "errors": {
+      "failed": "ワークスペースの作成に失敗しました"
+    }
+  }
+}

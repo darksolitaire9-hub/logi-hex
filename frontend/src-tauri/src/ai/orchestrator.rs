@@ -1,4 +1,4 @@
-use crate::ai::scoring::{calculate_scores, ForecastScore};
+use crate::ai::scoring::calculate_scores;
 use crate::ai::croston::croston_forecast;
 use serde::Serialize;
 
@@ -78,7 +78,7 @@ pub fn run_backtest_simulation(model_dir: Option<std::path::PathBuf>, history: &
     if let Some(mut path) = model_dir {
         path.push("timesfm-2.5.onnx");
         if path.exists() {
-            if let Ok(timesfm_engine) = crate::ai::timesfm::TimesFMEngine::new(&path) {
+            if let Ok(mut timesfm_engine) = crate::ai::timesfm::TimesFMEngine::new(&path) {
                 if let Ok(timesfm_forecast_vals) = timesfm_engine.predict(train_data, horizon) {
                     if let Ok(score) = calculate_scores(actual_test_data, &timesfm_forecast_vals, train_data) {
                         scores.push(EngineScore {

@@ -9,12 +9,8 @@ pub struct TimesFMEngine {
 
 impl TimesFMEngine {
     /// Loads the TimesFM 2.5 ONNX model from the specified file path.
+    /// Note: ort::init() must be called BEFORE constructing this struct (done by AiStateManager).
     pub fn new(model_path: &PathBuf) -> Result<Self, String> {
-        // Initialize ORT. It's safe to call this multiple times, it only inits once.
-        let _ = ort::init()
-            .with_name("logi-hex")
-            .commit(); // Ignore Error if already initialized
-
         let session = Session::builder()
             .map_err(|e| format!("Failed to create ORT builder: {}", e))?
             .with_optimization_level(GraphOptimizationLevel::Level3)
@@ -29,7 +25,7 @@ impl TimesFMEngine {
 
     /// Predicts the `horizon` using the ONNX graph.
     /// Expects `history` to be padded/sliced appropriately before being passed in.
-    pub fn predict(&self, history: &[f64], horizon: usize) -> Result<Vec<f64>, String> {
+    pub fn predict(&mut self, history: &[f64], horizon: usize) -> Result<Vec<f64>, String> {
         if history.is_empty() {
             return Err("History cannot be empty".to_string());
         }
@@ -66,7 +62,7 @@ impl TimesFMEngine {
         }
 
         // If the model natively output fewer steps than the horizon, we pad with the last known value
-        let mut last_val = *predictions.last().unwrap_or(&0.0);
+        let last_val = *predictions.last().unwrap_or(&0.0);
         while predictions.len() < horizon {
             predictions.push(last_val);
         }

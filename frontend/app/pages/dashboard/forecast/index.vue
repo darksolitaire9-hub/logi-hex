@@ -248,38 +248,21 @@ async function runForecast() {
   forecastResult.value = null
   
   try {
-    const history = await getItemMovementHistory(selectedItemId.value)
-    
-    if (history.length === 0) {
-      error.value = 'No demand history found for this item. Please log some outbound movements (e.g. Send, Use) to generate a forecast.'
-      return
-    }
-    
-    // Invoke the Rust command, which spawns the Python sidecar
+    // 1. DATA GRAVITY: Rust backend will fetch history directly from SQLite
     const responseJson = await invoke<string>('run_ml_forecast', {
-      history: JSON.stringify(history),
+      itemId: selectedItemId.value,
       horizon: horizon.value
     })
     
-    let response;
+    let baseForecast;
     try {
-      response = JSON.parse(responseJson)
+      baseForecast = JSON.parse(responseJson)
     } catch (parseErr) {
-      // If it's not pure JSON, try to extract it (in case stderr leaked)
-      const match = responseJson.match(/\{.*\}/s);
-      if (match) {
-        try {
-          response = JSON.parse(match[0]);
-        } catch(e) {}
-      }
-      if (!response) {
-        throw new Error(`Invalid sidecar response: ${responseJson}`);
-      }
+      throw new Error(`Invalid forecast response: ${responseJson}`);
     }
     
-    if (response.status === 'success') {
-      const baseForecast = response.forecast
-      modelUsed.value = response.model_used
+    if (Array.isArray(baseForecast)) {
+      modelUsed.value = 'Local TimesFM (Rust/ONNX)'
       
       // Calculate total base prediction
       const totalBase = baseForecast.reduce((sum: number, v: number) => sum + v, 0)

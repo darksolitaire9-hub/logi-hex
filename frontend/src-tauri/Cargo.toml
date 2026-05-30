@@ -30,5 +30,6 @@ anofox-forecast = "0.7.5"
 reqwest = { version = "0.11", features = ["stream"] }
 sha2 = "0.10"
 futures-util = "0.3"
-ort = "2.0.0-rc.9"
+ort = { version = "2.0.0-rc.9", features = ["load-dynamic"] }
 ndarray = "0.17.2"
+sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio-rustls"] }

@@ -47,7 +47,7 @@ pub async fn download_ai_pack(
     if !response.status().is_success() {
         // If range failed or file changed on server, restart from 0
         if response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
-            start_byte = 0;
+            let _ = start_byte; // Reset implicit — we remove the file and return anyway
             // Let's not loop here for simplicity; just clear file and error out for retry
             let _ = std::fs::remove_file(&file_path);
             return Err("Download interrupted, please try again".to_string());
