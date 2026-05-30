@@ -4,7 +4,7 @@ CREATE TABLE workspaces (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     mode TEXT NOT NULL CHECK (mode IN ('ACCOUNTS', 'INVENTORY')),
-    password_hash TEXT,
+    pin_hash TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -12,6 +12,7 @@ CREATE TABLE clients (
     id TEXT PRIMARY KEY,
     workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
+    info TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
