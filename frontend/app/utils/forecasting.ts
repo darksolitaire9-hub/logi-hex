@@ -54,3 +54,4 @@ export function interpolateCensoredDemand(rawDemand: (number | null)[]): number[
   
   return history
 }
+
