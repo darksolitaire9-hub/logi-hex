@@ -1,5 +1,4 @@
 -- f:\container tracker\logi-hex\frontend\src-tauri\migrations\1_init.sql
-PRAGMA journal_mode=WAL;
 
 CREATE TABLE workspaces (
     id TEXT PRIMARY KEY,

@@ -47,6 +47,12 @@ pub async fn init_db(app_handle: &tauri::AppHandle) -> Result<SqlitePool, String
         .await
         .map_err(|e| format!("Failed to create connection pool: {}", e))?;
 
+    // Run migrations using local migrations folder
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .map_err(|e| format!("Failed to run database migrations: {}", e))?;
+
     Ok(pool)
 }
 
