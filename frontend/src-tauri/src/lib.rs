@@ -247,6 +247,7 @@ pub fn run() {
             crate::commands::forecast::get_forecasting_settings,
             crate::commands::forecast::get_backtest_scores,
             crate::commands::forecast::get_best_forecasting_engine,
+            crate::commands::forecast::get_item_movement_history,
             crate::commands::ledger::log_movement,
             crate::commands::ledger::fetch_client_history,
             crate::commands::ledger::fetch_global_history,

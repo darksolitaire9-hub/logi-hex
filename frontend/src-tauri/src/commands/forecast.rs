@@ -299,6 +299,14 @@ pub async fn run_backtest(
     Ok(scores)
 }
 
+#[tauri::command]
+pub async fn get_item_movement_history(
+    item_id: String,
+    db_pool: tauri::State<'_, sqlx::SqlitePool>,
+) -> Result<Vec<f64>, String> {
+    fetch_item_demand_history(&item_id, &*db_pool).await
+}
+
 /// Helper function to parse YYYY-MM-DD to days since Unix epoch.
 fn parse_date_to_days(date_str: &str) -> Option<u64> {
     let parts: Vec<&str> = date_str.split('-').collect();
@@ -722,6 +730,55 @@ mod tests {
             let audit_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM forecast_audit_logs")
                 .fetch_one(&pool).await.unwrap();
             assert_eq!(audit_count, 1);
+        });
+    }
+
+    #[test]
+    fn test_fetch_item_demand_history() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let pool = sqlx::SqlitePool::connect("sqlite::memory:").await.unwrap();
+            
+            sqlx::query(
+                "CREATE TABLE items (
+                    id TEXT PRIMARY KEY,
+                    current_stock REAL,
+                    workspace_id TEXT
+                 )"
+            ).execute(&pool).await.unwrap();
+
+            sqlx::query(
+                "CREATE TABLE workspaces (
+                    id TEXT PRIMARY KEY,
+                    timezone TEXT
+                 )"
+            ).execute(&pool).await.unwrap();
+
+            sqlx::query(
+                "CREATE TABLE movements (
+                    id TEXT PRIMARY KEY,
+                    local_date TEXT,
+                    direction TEXT,
+                    workspace_id TEXT
+                 )"
+            ).execute(&pool).await.unwrap();
+
+            sqlx::query(
+                "CREATE TABLE movement_line_items (
+                    movement_id TEXT,
+                    item_id TEXT,
+                    quantity REAL
+                 )"
+            ).execute(&pool).await.unwrap();
+
+            sqlx::query("INSERT INTO workspaces (id, timezone) VALUES ('ws1', 'UTC')").execute(&pool).await.unwrap();
+            sqlx::query("INSERT INTO items (id, current_stock, workspace_id) VALUES ('item1', 10.0, 'ws1')").execute(&pool).await.unwrap();
+            sqlx::query("INSERT INTO movements (id, local_date, direction, workspace_id) VALUES ('m1', '2026-05-01', 'SEND', 'ws1')").execute(&pool).await.unwrap();
+            sqlx::query("INSERT INTO movement_line_items (movement_id, item_id, quantity) VALUES ('m1', 'item1', 5.0)").execute(&pool).await.unwrap();
+
+            let history = fetch_item_demand_history("item1", &pool).await.unwrap();
+            assert!(!history.is_empty());
+            assert_eq!(history[0], 5.0);
         });
     }
 }
