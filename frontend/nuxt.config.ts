@@ -7,8 +7,9 @@ export default defineNuxtConfig({
   i18n: {
     restructureDir: false,
     locales: [
-      { code: 'en', files: ['en/core.json', 'en/inventory.json'], name: 'English' },
-      // Other languages would replicate this split structure
+      { code: 'en', files: ['en/core.json', 'en/inventory.json', 'en/login.json'], name: 'English' },
+      { code: 'es', files: ['es/login.json'], name: 'Español' },
+      { code: 'ja', files: ['ja/login.json'], name: '日本語' }
     ],
     defaultLocale: 'en',
     strategy: 'no_prefix',
