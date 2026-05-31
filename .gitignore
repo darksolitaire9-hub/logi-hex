@@ -39,3 +39,6 @@ build/
 dist/
 *.spec
 frontend/src-tauri/binaries/
+
+# Graphify Knowledge Graph Metadata
+graphify-out/

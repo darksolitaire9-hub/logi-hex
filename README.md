@@ -1,5 +1,11 @@
+> 🛑 **CRITICAL FOR ALL CONTRIBUTORS (HUMAN & AI)**
+> Before writing any code, opening a PR, or planning a feature, you **MUST** read:
+> 1. [`SDD.md`](./SDD.md) (Software Design Document)
+> 2. [`COMMANDERS_INTENT.md`](./COMMANDERS_INTENT.md)
+> 
+> All work must strictly align with the local-first, unbreakable architecture described in these documents.
+
 > ⚠️ **API & architecture have changed (workspaces refactor)**
->
 > The code on `main` now uses a workspace-aware API with ACCOUNTS / INVENTORY
 > modes and `/api/workspaces/{id}/...` endpoints.
 >
