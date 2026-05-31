@@ -22,7 +22,15 @@ pub fn create_db_dir(db_path: &std::path::Path) -> Result<(), String> {
 }
 
 pub async fn init_db(app_handle: &tauri::AppHandle) -> Result<SqlitePool, String> {
-    let db_path = resolve_db_path(app_handle)?;
+    let db_path = if std::env::var("LOGIHEX_TEST_ENV").is_ok() {
+        let test_path = std::env::temp_dir().join("logihex_test.db");
+        if test_path.exists() {
+            let _ = std::fs::remove_file(&test_path);
+        }
+        test_path
+    } else {
+        resolve_db_path(app_handle)?
+    };
     
     // Ensure parent directory exists before establishing connection pool
     create_db_dir(&db_path)?;
