@@ -4,7 +4,6 @@ pub mod commands;
 pub mod crypto;
 pub mod types;
 
-use tauri_plugin_sql::{Migration, MigrationKind};
 use tauri::{Manager, RunEvent};
 use sqlx::Row;
 
@@ -175,70 +174,8 @@ async fn export_csv_to_disk(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let migrations = vec![
-        Migration {
-            version: 1,
-            description: "init_schema",
-            sql: include_str!("../migrations/1_init.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 2,
-            description: "enterprise_upgrades",
-            sql: include_str!("../migrations/2_enterprise.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 3,
-            description: "forecast_audit",
-            sql: include_str!("../migrations/3_forecast_audit.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 4,
-            description: "deterministic_overrides",
-            sql: include_str!("../migrations/4_deterministic_overrides.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 5,
-            description: "immutable_timezones",
-            sql: include_str!("../migrations/5_immutable_timezones.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 6,
-            description: "uom_paradox",
-            sql: include_str!("../migrations/6_uom_paradox.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 7,
-            description: "hitl_orchestrator",
-            sql: include_str!("../migrations/7_hitl_orchestrator.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 8,
-            description: "unified_translation_layer",
-            sql: include_str!("../migrations/8_unified_translation_layer.sql"),
-            kind: MigrationKind::Up,
-        },
-        Migration {
-            version: 9,
-            description: "advanced_model_tuning",
-            sql: include_str!("../migrations/9_advanced_model_tuning.sql"),
-            kind: MigrationKind::Up,
-        }
-    ];
-
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .plugin(
-            tauri_plugin_sql::Builder::default()
-                .add_migrations("sqlite:logihex.db", migrations)
-                .build(),
-        )
         .invoke_handler(tauri::generate_handler![
             run_ml_forecast, 
             generate_statistical_forecast, 
@@ -251,6 +188,17 @@ pub fn run() {
             crate::commands::ledger::log_movement,
             crate::commands::ledger::fetch_client_history,
             crate::commands::ledger::fetch_global_history,
+            crate::commands::ledger::get_export_data,
+            crate::commands::workspace::get_workspaces,
+            crate::commands::workspace::create_workspace,
+            crate::commands::client::get_clients,
+            crate::commands::client::create_client,
+            crate::commands::client::delete_client,
+            crate::commands::item::get_items,
+            crate::commands::item::create_item,
+            crate::commands::item::update_item,
+            crate::commands::item::delete_item,
+            crate::commands::item::get_low_stock_items,
             download_ai_pack,
             export_csv_to_disk,
             get_ai_status,

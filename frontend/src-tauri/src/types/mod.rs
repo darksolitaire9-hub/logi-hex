@@ -113,3 +113,89 @@ pub struct ForecastResponse {
     pub forecast: Vec<f64>,
     pub engine_name: String,
 }
+
+/// The workspace domain model stored in the database.
+#[derive(Debug, Serialize, Deserialize, TS, Clone, sqlx::FromRow)]
+#[ts(export, export_to = "../../app/types/generated/")]
+pub struct Workspace {
+    pub id: String,
+    pub name: String,
+    pub mode: String, // "ACCOUNTS" or "INVENTORY"
+    pub pin_hash: Option<String>,
+    pub admin_pin_hash: Option<String>,
+    pub timezone: Option<String>,
+    pub created_at: Option<String>,
+}
+
+/// Client domain model representation with aggregate fields for the UI.
+#[derive(Debug, Serialize, TS, sqlx::FromRow)]
+#[ts(export, export_to = "../../app/types/generated/")]
+pub struct ClientRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub name: String,
+    pub info: Option<String>,
+    pub created_at: Option<String>,
+    pub deleted_at: Option<String>,
+    pub total_items_held: f64,
+}
+
+/// UOM (Unit of Measure) mapping for an item.
+#[derive(Debug, Serialize, Deserialize, TS, Clone, sqlx::FromRow)]
+#[ts(export, export_to = "../../app/types/generated/")]
+pub struct ItemUomRow {
+    pub id: String,
+    pub item_id: String,
+    pub unit_name: String,
+    pub multiplier: f64,
+}
+
+/// Item domain model representation.
+#[derive(Debug, Serialize, TS, sqlx::FromRow, Clone)]
+#[ts(export, export_to = "../../app/types/generated/")]
+pub struct ItemRow {
+    pub id: String,
+    pub workspace_id: String,
+    pub label: String,
+    pub unit: String,
+    pub current_stock: f64,
+    pub reorder_point: Option<f64>,
+    pub created_at: Option<String>,
+    pub deleted_at: Option<String>,
+    pub base_unit_name: String,
+    pub primary_uom_id: Option<String>,
+}
+
+/// Input payload for creating alternate UOMs.
+#[derive(Debug, Deserialize)]
+pub struct AlternateUomPayload {
+    pub unit_name: String,
+    pub multiplier: f64,
+}
+
+/// Data row structure exported for CSV reporting.
+#[derive(Debug, Serialize, TS, sqlx::FromRow)]
+#[ts(export, export_to = "../../app/types/generated/")]
+pub struct ExportRow {
+    pub id: String,
+    pub direction: String,
+    pub timestamp: Option<String>,
+    pub notes: Option<String>,
+    pub correction_reason: Option<String>,
+    pub client_name: Option<String>,
+    pub item_label: String,
+    pub quantity: f64,
+}
+
+/// Outstanding balance row for a specific client and item.
+#[derive(Debug, Serialize, TS, sqlx::FromRow)]
+#[ts(export, export_to = "../../app/types/generated/")]
+pub struct ClientBalanceRow {
+    pub item_id: String,
+    pub label: String,
+    pub unit: String,
+    pub balance: f64,
+}
+
+
+

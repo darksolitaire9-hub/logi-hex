@@ -2,7 +2,7 @@ use sqlx::Row;
 use uuid::Uuid;
 use tauri::State;
 use crate::types::{
-    LogMovementCommand, MovementDirection, LedgerError, MovementHistoryRow,
+    LogMovementCommand, MovementDirection, LedgerError, MovementHistoryRow, ExportRow,
 };
 use crate::crypto::{self, state::CryptoState};
 
@@ -283,3 +283,28 @@ pub fn chrono_days_to_date(days_since_epoch: u64) -> String {
 pub fn is_leap(y: u64) -> bool {
     (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
 }
+
+#[tauri::command]
+pub async fn get_export_data(
+    workspace_id: String,
+    db_pool: State<'_, sqlx::SqlitePool>,
+) -> Result<Vec<ExportRow>, String> {
+    sqlx::query_as::<_, ExportRow>(
+        "SELECT 
+           m.id, m.direction, m.timestamp, m.notes, m.correction_reason,
+           c.name as client_name,
+           i.label as item_label,
+           mli.quantity
+         FROM movements m
+         LEFT JOIN clients c ON m.client_id = c.id
+         JOIN movement_line_items mli ON m.id = mli.movement_id
+         JOIN items i ON mli.item_id = i.id
+         WHERE m.workspace_id = ?
+         ORDER BY m.timestamp DESC"
+    )
+    .bind(&workspace_id)
+    .fetch_all(db_pool.inner())
+    .await
+    .map_err(|e| format!("DB error: {}", e))
+}
+
