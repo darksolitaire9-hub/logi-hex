@@ -53,9 +53,11 @@ Because the frontend is a pure thin client interacting only via `invoke()`, comp
 - [x] Write component integration tests (e.g. `useWorkspace` workspace flow testing).
 
 ## Phase 4: End-to-End (E2E) Testing Harness
-**Status:** Pending ⏳
+**Status:** Completed ✅
 
 Configure E2E testing to run the Tauri application webview and simulate user interactions against the isolated testing database.
 
-- [ ] Choose and configure E2E testing framework (WebdriverIO or Playwright).
-- [ ] Write first E2E flow verifying workspace onboarding and navigation without database pollution.
+- [x] Installed Playwright E2E testing framework in `package.json`.
+- [x] Configured mock Tauri IPC layer (`window.__TAURI_INTERNALS__` and `window.__TAURI__.core.invoke`) to run tests headlessly in web environment.
+- [x] Added `"test:e2e": "playwright test"` script to `package.json`.
+- [x] Wrote workspace onboarding E2E test verifying full form submission and view state assertions.
