@@ -31,16 +31,16 @@ The frontend previously used `tauri-plugin-sql` to execute raw database queries.
   - Completely uninstalled and removed `tauri-plugin-sql` from the frontend bundle.
 
 ## Phase 2: Test Environment & IPC Safety
-**Status:** In Progress ⏳
+**Status:** Completed ✅
 
 Before adding UI tests, we must establish database isolation so tests do not pollute user data, and generate TypeScript types from Rust structs to prevent IPC contract drift.
 
-- [ ] **TypeScript Binding Generation**
+- [x] **TypeScript Binding Generation**
   - Add `ts-rs` dependency to Cargo.toml.
-  - Derive `TS` on all payload/response structs in `types/mod.rs` to auto-generate `frontend/app/types/bindings.ts`.
-- [ ] **Database Isolation for Testing**
-  - Modify SQLite initialization in `db/mod.rs` to detect the `LOGIHEX_TEST_ENV` environment variable.
-  - Inject an in-memory SQLite database (`sqlite::memory:`) or temp database path when testing to prevent pollution of `logihex.db`.
+  - Derived `TS` on all payload/response structs in `types/mod.rs` to auto-generate `frontend/app/types/bindings.ts`.
+- [x] **Database Isolation for Testing**
+  - Modified SQLite initialization in `db/mod.rs` to detect the `LOGIHEX_TEST_ENV` environment variable.
+  - Injects a temporary database path when testing to prevent pollution of `logihex.db`.
 
 ## Phase 3: Vitest UI Component Testing
 **Status:** Pending ⏳
