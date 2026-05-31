@@ -43,14 +43,14 @@ Before adding UI tests, we must establish database isolation so tests do not pol
   - Injects a temporary database path when testing to prevent pollution of `logihex.db`.
 
 ## Phase 3: Vitest UI Component Testing
-**Status:** Pending ⏳
+**Status:** Completed ✅
 
 Because the frontend is a pure thin client interacting only via `invoke()`, components can be tested deterministically with mocked IPC states.
 
-- [ ] Configure Vitest (`vitest.config.ts`) to work with Nuxt 4 and `happy-dom`.
-- [ ] Create a global Tauri IPC mock in `frontend/app/utils/tauri-mock.ts` to intercept `invoke` calls.
-- [ ] Add `"test": "vitest"` script to `package.json`.
-- [ ] Write component integration tests (e.g. Workspace flow and onboarding).
+- [x] Configure Vitest (`vitest.config.ts`) to work with Nuxt 4 and `happy-dom`.
+- [x] Create a global Tauri IPC mock directly in unit test modules to isolate and intercept `invoke` calls.
+- [x] Add `"test": "vitest run"` script to `package.json`.
+- [x] Write component integration tests (e.g. `useWorkspace` workspace flow testing).
 
 ## Phase 4: End-to-End (E2E) Testing Harness
 **Status:** Pending ⏳
