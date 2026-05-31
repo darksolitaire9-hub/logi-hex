@@ -165,8 +165,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { EngineScore } from '../../../composables/useForecasting'
-import type { Item } from '../../../types/domain'
+import type { EngineScore } from '../../composables/useForecasting'
+import type { Item } from '../../types/domain'
 
 const props = defineProps<{
   modelValue: boolean

@@ -5,6 +5,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ["@nuxt/ui", "@nuxtjs/i18n"],
   i18n: {
+    restructureDir: false,
     locales: [
       { code: 'en', files: ['en/core.json', 'en/inventory.json'], name: 'English' },
       // Other languages would replicate this split structure
@@ -12,7 +13,7 @@ export default defineNuxtConfig({
     defaultLocale: 'en',
     strategy: 'no_prefix',
     lazy: true,
-    langDir: 'locales/',
+    langDir: '../locales/',
     types: 'composition',
     defaultDirection: 'auto',
     vueI18n: './i18n.config.ts'

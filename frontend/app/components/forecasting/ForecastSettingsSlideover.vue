@@ -19,8 +19,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useForecasting, type EngineScore } from '../../../composables/useForecasting'
-import type { Item } from '../../../types/domain'
+import { useForecasting, type EngineScore } from '../../composables/useForecasting'
+import type { Item } from '../../types/domain'
 import ForecastSettingsForm from './ForecastSettingsForm.vue'
 
 const props = defineProps<{
