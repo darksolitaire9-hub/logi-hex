@@ -76,7 +76,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useWorkspace } from '../../../composables/useWorkspace'
-import { useDatabase } from '../../../composables/useDatabase'
 import { decryptField } from '../../../utils/crypto'
 import { invoke } from '@tauri-apps/api/core'
 
@@ -104,20 +103,7 @@ async function verifyAccess() {
 async function exportCSV() {
   if (!currentWorkspace.value) return
   try {
-    const db = await useDatabase()
-    const result = await db.select<any[]>(`
-      SELECT 
-        m.id, m.direction, m.timestamp, m.notes, m.correction_reason,
-        c.name as client_name,
-        i.label as item_label,
-        mli.quantity
-      FROM movements m
-      LEFT JOIN clients c ON m.client_id = c.id
-      JOIN movement_line_items mli ON m.id = mli.movement_id
-      JOIN items i ON mli.item_id = i.id
-      WHERE m.workspace_id = $1
-      ORDER BY m.timestamp DESC
-    `, [currentWorkspace.value.id])
+    const result = await invoke<any[]>('get_export_data', { workspaceId: currentWorkspace.value.id })
     
     if (result.length === 0) {
       alert("No movements found to export.")

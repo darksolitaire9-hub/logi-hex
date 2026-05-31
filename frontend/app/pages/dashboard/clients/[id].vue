@@ -114,7 +114,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useDatabase } from '../../../composables/useDatabase'
+import { invoke } from '@tauri-apps/api/core'
 import { useLedger, type MovementHistoryRow } from '../../../composables/useLedger'
 import { useWorkspace } from '../../../composables/useWorkspace'
 import { decryptField } from '../../../utils/crypto'
@@ -129,7 +129,7 @@ const route = useRoute()
 const clientId = route.params.id as string
 
 const { fetchClientHistory } = useLedger()
-const { activeCryptoKey } = useWorkspace()
+const { currentWorkspace, activeCryptoKey } = useWorkspace()
 
 // State
 const client = ref<Client | null>(null)
@@ -142,42 +142,19 @@ const isSlideoverOpen = ref(false)
 const isSendingMode = ref(true)
 
 async function loadData() {
+  if (!currentWorkspace.value) return
   loading.value = true
   try {
-    const db = await useDatabase()
-    
-    // 1. Fetch Client Details
-    const clientResult = await db.select<Client[]>('SELECT * FROM clients WHERE id = $1', [clientId])
-    if (clientResult.length > 0) {
-      const c = clientResult[0]!
+    // 1. Fetch Client Details via secure IPC
+    const c = await invoke<Client>('get_client', { id: clientId, workspaceId: currentWorkspace.value.id })
+    if (c) {
       c.name = await decryptField(c.name, activeCryptoKey.value)
       if (c.info) c.info = await decryptField(c.info, activeCryptoKey.value)
       client.value = c
     }
 
-    // 2. Fetch Live Balances grouping by item
-    // A SEND is positive. A COLLECT is negative.
-    const balanceQuery = `
-      SELECT 
-        i.id as item_id,
-        i.label,
-        i.unit,
-        SUM(
-          CASE 
-            WHEN m.direction = 'SEND' THEN mli.quantity
-            WHEN m.direction = 'COLLECT' THEN -mli.quantity
-            ELSE 0 
-          END
-        ) as balance
-      FROM items i
-      JOIN movement_line_items mli ON i.id = mli.item_id
-      JOIN movements m ON mli.movement_id = m.id
-      WHERE m.client_id = $1
-      GROUP BY i.id
-      HAVING balance > 0
-      ORDER BY i.created_at ASC
-    `
-    const balResult = await db.select<typeof balances.value>(balanceQuery, [clientId])
+    // 2. Fetch Live Balances grouping by item via secure IPC
+    const balResult = await invoke<typeof balances.value>('get_client_balances', { clientId })
     for (const b of balResult) {
       b.label = await decryptField(b.label, activeCryptoKey.value)
     }

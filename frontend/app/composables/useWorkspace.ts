@@ -1,6 +1,6 @@
 import { ref } from 'vue'
-import { v4 as uuidv4 } from 'uuid'
-import { useDatabase } from './useDatabase'
+import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import type { Workspace } from '../types/domain'
 import { deriveKeyFromPin } from '../utils/crypto'
 
@@ -16,39 +16,42 @@ const workspaces = ref<Workspace[]>([])
 const currentWorkspace = ref<Workspace | null>(null)
 const activeCryptoKey = ref<CryptoKey | null>(null)
 
-export function useWorkspace() {
-  const loading = ref(false)
-
-  async function fetchWorkspaces() {
-    loading.value = true
-    try {
-      const db = await useDatabase()
-      const result = await db.select<Workspace[]>('SELECT * FROM workspaces ORDER BY created_at DESC')
-      workspaces.value = result
-    } catch (e) {
-      console.error('Failed to fetch workspaces:', e)
-    } finally {
-      loading.value = false
-    }
+// Reactively refresh workspaces list when database changes on the Rust side
+listen('db_changed', (event) => {
+  if (event.payload === 'workspace') {
+    console.log("Database changed event received for workspace, reloading...")
+    fetchWorkspaces()
   }
+})
 
+async function fetchWorkspaces() {
+  loading.value = true
+  try {
+    const result = await invoke<Workspace[]>('get_workspaces')
+    workspaces.value = result
+  } catch (e) {
+    console.error('Failed to fetch workspaces:', e)
+  } finally {
+    loading.value = false
+  }
+}
+
+const loading = ref(false)
+
+export function useWorkspace() {
   async function createWorkspace(name: string, mode: 'ACCOUNTS' | 'INVENTORY', pin: string, adminPin: string, timezone: string = 'UTC') {
     loading.value = true
     try {
-      const db = await useDatabase()
-      const newId = uuidv4()
-      
-      const pinHash = await hashPin(pin)
-      const adminPinHash = await hashPin(adminPin)
-
-      await db.execute(
-        'INSERT INTO workspaces (id, name, mode, pin_hash, admin_pin_hash, timezone) VALUES ($1, $2, $3, $4, $5, $6)',
-        [newId, name, mode, pinHash, adminPinHash, timezone]
-      )
+      const created = await invoke<Workspace>('create_workspace', {
+        name,
+        mode,
+        pin,
+        adminPin,
+        timezone
+      })
 
       await fetchWorkspaces()
       
-      const created = workspaces.value.find(w => w.id === newId)
       if (created) {
         currentWorkspace.value = created
       }
