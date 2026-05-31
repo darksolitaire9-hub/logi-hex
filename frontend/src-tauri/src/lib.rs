@@ -26,51 +26,19 @@ async fn run_ml_forecast(
     app_handle: tauri::AppHandle, 
     item_id: String, 
     horizon: u32,
+    human_adjustment_qty: f64,
+    override_reason: String,
     db_pool: tauri::State<'_, sqlx::SqlitePool>
 ) -> Result<String, String> {
-    // 1. DATA GRAVITY: Fetch data directly from SQLite using fetch_item_demand_history
-    let history = crate::commands::forecast::fetch_item_demand_history(&item_id, &*db_pool).await?;
-
-    if history.is_empty() {
-        return Err("No history found for item".to_string());
-    }
-
-    // 2. Resolve engine dynamically
-    let engine_name = crate::commands::forecast::resolve_forecasting_engine(&item_id, horizon as usize, &*db_pool).await?;
-
-    // 3. Execute chosen engine
-    let forecast = match engine_name.as_str() {
-        "TimesFM_2.5_ONNX" => {
-            // Pad history to minimum 14 days for TimesFM
-            let input_history = if history.len() < 14 {
-                let mut padded = vec![0.0; 14];
-                let offset = 14 - history.len();
-                padded[offset..].copy_from_slice(&history);
-                padded
-            } else {
-                history.clone()
-            };
-            let ai_state = app_handle.state::<crate::ai::state::AiStateManager>();
-            let mut engine_guard = ai_state.get_or_load_engine(&app_handle).await?;
-            if let Some(engine) = engine_guard.as_mut() {
-                engine.predict(&input_history, horizon as usize)?
-            } else {
-                return Err("Engine loaded but reference is null".to_string());
-            }
-        }
-        "Rust_Croston" => {
-            crate::ai::croston::croston_forecast(&history, horizon as usize, 0.1)
-        }
-        _ => {
-            // Default/Fallback: Baseline_LastKnown
-            crate::ai::orchestrator::last_known_demand_forecast(&history, horizon as usize)
-        }
-    };
-
-    let response = crate::types::ForecastResponse {
-        forecast,
-        engine_name,
-    };
+    let response = crate::commands::forecast::run_ml_forecast_impl(
+        Some(&app_handle),
+        &item_id,
+        horizon,
+        human_adjustment_qty,
+        &override_reason,
+        &*db_pool,
+    )
+    .await?;
 
     // Return compact JSON result
     serde_json::to_string(&response).map_err(|e| e.to_string())
@@ -87,14 +55,87 @@ async fn warmup_ai_engine(app_handle: tauri::AppHandle, ai_state: tauri::State<'
     ai_state.warmup_engine(&app_handle).await
 }
 
+fn verify_export_path_rules(input_path: &str) -> Result<std::path::PathBuf, String> {
+    let trimmed = input_path.trim();
+    if trimmed.is_empty() {
+        return Err("Path cannot be empty".to_string());
+    }
+
+    let path = std::path::Path::new(trimmed);
+    
+    // 1. Strictly reject path traversal components
+    for component in path.components() {
+        match component {
+            std::path::Component::ParentDir => {
+                return Err("Path traversal (..) is not allowed".to_string());
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(path.to_path_buf())
+}
+
+fn verify_and_resolve_path(app_handle: &tauri::AppHandle, input_path: &str) -> Result<std::path::PathBuf, String> {
+    let path = verify_export_path_rules(input_path)?;
+    let trimmed = input_path.trim();
+
+    // 2. Determine if it is a filename only (no separators)
+    let is_filename_only = !trimmed.contains('/') && !trimmed.contains('\\');
+    if is_filename_only {
+        let base_dir = app_handle.path().download_dir()
+            .or_else(|_| app_handle.path().document_dir())
+            .or_else(|_| app_handle.path().app_data_dir())
+            .map_err(|_| "Failed to resolve any safe base directory".to_string())?;
+        return Ok(base_dir.join(path));
+    }
+
+    // 3. Resolve the parent directory
+    let parent = path.parent().ok_or_else(|| "Path has no parent directory".to_string())?;
+    
+    // Canonicalize parent directory to check safety. Parent must exist.
+    let canonical_parent = parent.canonicalize()
+        .map_err(|e| format!("Parent directory does not exist or is invalid: {}", e))?;
+
+    // 4. Resolve safe system directories
+    let allowed_dirs = vec![
+        app_handle.path().download_dir(),
+        app_handle.path().document_dir(),
+        app_handle.path().desktop_dir(),
+        app_handle.path().app_data_dir(),
+    ];
+
+    let mut is_under_allowed = false;
+    for allowed_dir_res in allowed_dirs {
+        if let Ok(allowed_dir) = allowed_dir_res {
+            if let Ok(canonical_allowed) = allowed_dir.canonicalize() {
+                if canonical_parent.starts_with(&canonical_allowed) {
+                    is_under_allowed = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if !is_under_allowed {
+        return Err("Target path is outside allowed directories".to_string());
+    }
+
+    let filename = path.file_name().ok_or_else(|| "Invalid filename".to_string())?;
+    Ok(canonical_parent.join(filename))
+}
+
 #[tauri::command]
 async fn export_csv_to_disk(
-    _app_handle: tauri::AppHandle,
+    app_handle: tauri::AppHandle,
     item_id: String,
     save_path: String,
     db_pool: tauri::State<'_, sqlx::SqlitePool>
 ) -> Result<String, String> {
     use std::io::Write;
+    
+    // Verify and resolve the destination path securely
+    let resolved_path = verify_and_resolve_path(&app_handle, &save_path)?;
     
     // Fetch all history
     let records = sqlx::query("SELECT id, direction, timestamp, client_id, notes FROM movements WHERE workspace_id = (SELECT workspace_id FROM items WHERE id = ?) ORDER BY timestamp DESC")
@@ -103,10 +144,11 @@ async fn export_csv_to_disk(
         .await
         .map_err(|e| format!("Failed to fetch movements for CSV: {}", e))?;
 
-    let mut file = std::fs::File::create(&save_path).map_err(|e| format!("Failed to create file: {}", e))?;
+    let mut file = std::fs::File::create(&resolved_path).map_err(|e| format!("Failed to create file: {}", e))?;
     
     writeln!(file, "ID,Direction,Timestamp,ClientID,Notes").map_err(|e| e.to_string())?;
     
+    let mut count = 0;
     for row in records {
         let notes_opt: Option<String> = row.get("notes");
         let notes = notes_opt.unwrap_or_default().replace("\"", "\"\"");
@@ -125,9 +167,10 @@ async fn export_csv_to_disk(
             client_id_opt.unwrap_or_default(), 
             notes
         ).map_err(|e| e.to_string())?;
+        count += 1;
     }
 
-    Ok(format!("Successfully exported {} rows to {}", 0, save_path)) // We could count rows, but Ok is fine
+    Ok(format!("Successfully exported {} rows to {}", count, resolved_path.to_string_lossy()))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -180,6 +223,12 @@ pub fn run() {
             description: "unified_translation_layer",
             sql: include_str!("../migrations/8_unified_translation_layer.sql"),
             kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 9,
+            description: "advanced_model_tuning",
+            sql: include_str!("../migrations/9_advanced_model_tuning.sql"),
+            kind: MigrationKind::Up,
         }
     ];
 
@@ -194,7 +243,10 @@ pub fn run() {
             run_ml_forecast, 
             generate_statistical_forecast, 
             crate::commands::forecast::run_backtest,
-            crate::commands::forecast::save_forecast_audit,
+            crate::commands::forecast::save_forecasting_settings,
+            crate::commands::forecast::get_forecasting_settings,
+            crate::commands::forecast::get_backtest_scores,
+            crate::commands::forecast::get_best_forecasting_engine,
             crate::commands::ledger::log_movement,
             crate::commands::ledger::fetch_client_history,
             crate::commands::ledger::fetch_global_history,
@@ -257,4 +309,30 @@ pub fn run() {
         }
         _ => {}
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_verify_export_path_rules_valid() {
+        assert!(verify_export_path_rules("export.csv").is_ok());
+        assert!(verify_export_path_rules("subfolder/export.csv").is_ok());
+        assert!(verify_export_path_rules("subfolder\\export.csv").is_ok());
+    }
+
+    #[test]
+    fn test_verify_export_path_rules_empty() {
+        assert!(verify_export_path_rules("").is_err());
+        assert!(verify_export_path_rules("   ").is_err());
+    }
+
+    #[test]
+    fn test_verify_export_path_rules_traversal() {
+        assert!(verify_export_path_rules("../export.csv").is_err());
+        assert!(verify_export_path_rules("..\\export.csv").is_err());
+        assert!(verify_export_path_rules("folder/../export.csv").is_err());
+        assert!(verify_export_path_rules("export.csv/..").is_err());
+    }
 }

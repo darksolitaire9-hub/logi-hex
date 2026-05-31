@@ -76,31 +76,86 @@
           </div>
         </div>
 
-        <!-- Manual Override -->
+        <!-- Default Layer: Forecast Style -->
         <div class="pt-6 border-t border-[var(--lh-border-subtle)]">
-          <h3 class="text-sm font-semibold text-[var(--lh-ink-primary)] mb-2">Engine Override</h3>
+          <h3 class="text-sm font-semibold text-[var(--lh-ink-primary)] mb-2">Forecast style</h3>
           <p class="text-xs text-[var(--lh-ink-secondary)] mb-4">
-            Override the Orchestrator and lock a specific forecasting engine for this item.
+            Most users can leave this on Balanced.
           </p>
           
           <div class="space-y-3">
             <label class="flex items-center space-x-3 cursor-pointer">
-              <input type="radio" :value="'auto'" :checked="overrideSelection === 'auto'" @change="$emit('change-override', 'auto')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
-              <span class="text-sm text-[var(--lh-ink-primary)]">Auto-Select (Recommended)</span>
+              <input type="radio" :value="'Steady'" :checked="reactivityPreset === 'Steady'" @change="$emit('change-reactivity', 'Steady')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
+              <span class="text-sm text-[var(--lh-ink-primary)]">Steady</span>
             </label>
             <label class="flex items-center space-x-3 cursor-pointer">
-              <input type="radio" :value="'Rust_Croston'" :checked="overrideSelection === 'Rust_Croston'" @change="$emit('change-override', 'Rust_Croston')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
-              <span class="text-sm text-[var(--lh-ink-primary)]">Force Native Rust (Croston)</span>
+              <input type="radio" :value="'Balanced'" :checked="reactivityPreset === 'Balanced'" @change="$emit('change-reactivity', 'Balanced')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
+              <span class="text-sm text-[var(--lh-ink-primary)]">Balanced</span>
             </label>
             <label class="flex items-center space-x-3 cursor-pointer">
-              <input type="radio" :value="'TimesFM_2.5_ONNX'" :checked="overrideSelection === 'TimesFM_2.5_ONNX'" @change="$emit('change-override', 'TimesFM_2.5_ONNX')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
-              <span class="text-sm text-[var(--lh-ink-primary)]">Force AI Pack (TimesFM ONNX)</span>
-            </label>
-            <label class="flex items-center space-x-3 cursor-pointer">
-              <input type="radio" :value="'Baseline_LastKnown'" :checked="overrideSelection === 'Baseline_LastKnown'" @change="$emit('change-override', 'Baseline_LastKnown')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
-              <span class="text-sm text-[var(--lh-ink-primary)]">Force Baseline (Last Known Demand)</span>
+              <input type="radio" :value="'Quick to adapt'" :checked="reactivityPreset === 'Quick to adapt'" @change="$emit('change-reactivity', 'Quick to adapt')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
+              <span class="text-sm text-[var(--lh-ink-primary)]">Quick to adapt</span>
             </label>
           </div>
+        </div>
+
+        <!-- Advanced Layer -->
+        <div class="pt-6 border-t border-[var(--lh-border-subtle)]">
+          <details class="group">
+            <summary class="flex items-center justify-between cursor-pointer list-none font-semibold text-sm text-[var(--lh-ink-primary)] mb-2 outline-none focus-visible:ring-2 focus-visible:ring-[var(--lh-brand)] rounded">
+              <span>Advanced forecast settings</span>
+              <UIcon name="i-lucide-chevron-down" class="w-4 h-4 transition-transform group-open:rotate-180" />
+            </summary>
+            
+            <p class="text-xs text-[var(--lh-ink-secondary)] mb-4">
+              If you already know forecasting terms, you can adjust them here. Most users can leave these unchanged.
+            </p>
+
+            <div class="space-y-6 mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-[var(--lh-border-subtle)]">
+              <!-- Engine Override -->
+              <div>
+                <h4 class="text-xs font-semibold text-[var(--lh-ink-primary)] mb-3">Engine Override</h4>
+                <div class="space-y-3">
+                  <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="radio" :value="'auto'" :checked="overrideSelection === 'auto'" @change="$emit('change-override', 'auto')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
+                    <span class="text-sm text-[var(--lh-ink-primary)]">Auto-Select (Recommended)</span>
+                  </label>
+                  <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="radio" :value="'Rust_Croston'" :checked="overrideSelection === 'Rust_Croston'" @change="$emit('change-override', 'Rust_Croston')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
+                    <span class="text-sm text-[var(--lh-ink-primary)]">Force Native Rust (Croston)</span>
+                  </label>
+                  <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="radio" :value="'TimesFM_2.5_ONNX'" :checked="overrideSelection === 'TimesFM_2.5_ONNX'" @change="$emit('change-override', 'TimesFM_2.5_ONNX')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
+                    <span class="text-sm text-[var(--lh-ink-primary)]">Force AI Pack (TimesFM ONNX)</span>
+                  </label>
+                  <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="radio" :value="'Baseline_LastKnown'" :checked="overrideSelection === 'Baseline_LastKnown'" @change="$emit('change-override', 'Baseline_LastKnown')" class="text-[var(--lh-brand)] focus:ring-[var(--lh-brand)]" />
+                    <span class="text-sm text-[var(--lh-ink-primary)]">Force Baseline (Last Known)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Alpha Override -->
+              <div v-if="overrideSelection === 'Rust_Croston' || overrideSelection === 'auto'">
+                <h4 class="text-xs font-semibold text-[var(--lh-ink-primary)] mb-2">Custom Alpha Smoothing (Croston)</h4>
+                <div class="flex items-center space-x-3">
+                  <input type="number" step="0.01" min="0" max="1" 
+                         :value="alphaOverride" 
+                         @input="e => $emit('change-alpha', (e.target as HTMLInputElement).value ? parseFloat((e.target as HTMLInputElement).value) : null)"
+                         class="block w-24 rounded-md border-gray-300 shadow-sm focus:border-[var(--lh-brand)] focus:ring-[var(--lh-brand)] sm:text-sm text-black dark:text-white dark:bg-gray-700 bg-white" 
+                         placeholder="Auto" />
+                  <span class="text-xs text-[var(--lh-ink-secondary)]">Valid range: 0.0 - 1.0</span>
+                </div>
+              </div>
+
+              <!-- Reset Button -->
+              <div class="pt-4 border-t border-[var(--lh-border-subtle)] flex justify-end">
+                <button @click="$emit('reset-advanced')" class="text-xs font-medium text-red-600 hover:text-red-500 transition-colors">
+                  Reset to default
+                </button>
+              </div>
+            </div>
+          </details>
         </div>
 
       </div>
@@ -121,9 +176,11 @@ const props = defineProps<{
   scores: EngineScore[]
   bestEngine: string
   overrideSelection: string
+  reactivityPreset: string
+  alphaOverride: number | null
 }>()
 
-const emit = defineEmits(['update:modelValue', 'run-backtest', 'change-override'])
+const emit = defineEmits(['update:modelValue', 'run-backtest', 'change-override', 'change-reactivity', 'change-alpha', 'reset-advanced'])
 
 const isOpen = computed({
   get: () => props.modelValue,

@@ -162,30 +162,11 @@ export function useLedger() {
     }
   }
 
-  async function saveForecastAudit(payload: {
-    item_id: string,
-    model_used: string,
-    input_snapshot: string,
-    base_prediction: number,
-    human_override_percentage: number,
-    human_adjustment_qty: number,
-    override_reason: string,
-    final_prediction: number
-  }) {
-    if (!currentWorkspace.value) return
-    try {
-      await invoke('save_forecast_audit', { payload })
-    } catch (e) {
-      console.error('Failed to save forecast audit:', e)
-    }
-  }
-
   return {
     loading,
     logMovement,
     fetchClientHistory,
     fetchGlobalHistory,
-    getItemMovementHistory,
-    saveForecastAudit
+    getItemMovementHistory
   }
 }

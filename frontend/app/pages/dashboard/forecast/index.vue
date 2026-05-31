@@ -36,9 +36,19 @@
           <h2 class="text-sm font-medium text-[var(--lh-ink-secondary)] mb-3 uppercase tracking-wider">Human Override (Covariates)</h2>
           <p class="text-xs text-[var(--lh-ink-secondary)] mb-2">Adjust baseline math for unprecedented events (e.g., upcoming holidays).</p>
           <div class="flex items-center space-x-3">
-            <input type="range" v-model.number="humanOverride" min="-100" max="200" step="5" class="w-full" :disabled="isForecasting || isLocked" />
-            <span class="text-sm font-medium text-[var(--lh-ink-primary)] w-16 text-right">{{ humanOverride > 0 ? '+' : '' }}{{ humanOverride }}%</span>
+            <input type="range" v-model.number="humanDelta" min="-100" max="200" step="5" class="w-full" :disabled="isForecasting || isLocked" />
+            <span class="text-sm font-medium text-[var(--lh-ink-primary)] w-16 text-right">{{ humanDelta > 0 ? '+' : '' }}{{ humanDelta }} units</span>
           </div>
+        </div>
+
+        <div v-if="humanDelta !== 0">
+          <h2 class="text-sm font-medium text-[var(--lh-ink-secondary)] mb-3 uppercase tracking-wider">Override Reason</h2>
+          <input 
+            v-model="overrideReason" 
+            placeholder="Reason for adjustment (required)..." 
+            class="lh-input w-full"
+            :disabled="isForecasting || isLocked"
+          />
         </div>
 
         <div class="pt-4 border-t border-[var(--lh-border-subtle)]">
@@ -98,6 +108,7 @@
         <div v-else class="flex-1 flex flex-col">
           <!-- Temporary simple visualization without heavy chart libs -->
           <div class="flex-1 flex items-end space-x-1 px-4 pb-8 pt-4">
+            <!-- Presentation-only clamp: ensure visual bar height is between 5% and 100% on chart screen -->
             <div 
               v-for="(val, idx) in forecastResult" 
               :key="idx"
@@ -195,7 +206,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useItems } from '../../../composables/useItems'
-import { useDatabase } from '../../../composables/useDatabase'
 import { useWorkspace } from '../../../composables/useWorkspace'
 import { useLedger } from '../../../composables/useLedger'
 
@@ -205,7 +215,7 @@ definePageMeta({
 
 const { currentWorkspace } = useWorkspace()
 const { items, fetchItems } = useItems()
-const { getItemMovementHistory, saveForecastAudit } = useLedger()
+const { getItemMovementHistory } = useLedger()
 
 const selectedItemId = ref('')
 const horizon = ref(30)
@@ -237,7 +247,8 @@ onMounted(async () => {
 
 const maxForecastValue = computed(() => {
   if (!forecastResult.value || forecastResult.value.length === 0) return 100
-  return Math.max(...forecastResult.value, 10) // Minimum scale of 10
+  // Presentation-only clamp: ensure visual chart scale has a valid non-zero denominator
+  return Math.max(...forecastResult.value, 10)
 })
 
 async function runForecast() {
@@ -248,10 +259,12 @@ async function runForecast() {
   forecastResult.value = null
   
   try {
-    // 1. DATA GRAVITY: Rust backend will fetch history directly from SQLite
+    // 1. DATA GRAVITY: Rust backend will fetch history directly from SQLite, apply overrides, and save audit logs
     const responseJson = await invoke<string>('run_ml_forecast', {
       itemId: selectedItemId.value,
-      horizon: horizon.value
+      horizon: horizon.value,
+      humanAdjustmentQty: humanDelta.value,
+      overrideReason: overrideReason.value
     })
     
     let baseForecast;
@@ -264,29 +277,7 @@ async function runForecast() {
     }
     
     if (Array.isArray(baseForecast)) {
-      // Calculate total base prediction
-      const totalBase = baseForecast.reduce((sum: number, v: number) => sum + v, 0)
-      
-      // Apply Deterministic Human Override (Delta added linearly across the horizon)
-      const dailyDelta = humanDelta.value / horizon.value
-      const adjustedForecast = baseForecast.map((v: number) => Math.max(0, v + dailyDelta))
-      forecastResult.value = adjustedForecast
-      
-      // Calculate total final prediction
-      const totalFinal = adjustedForecast.reduce((sum: number, v: number) => sum + v, 0)
-      
-      // AUDIT LOG: Save Provenance
-      await saveForecastAudit({
-        item_id: selectedItemId.value,
-        model_used: modelUsed.value,
-        input_snapshot: JSON.stringify(cachedHistorySnapshot.value),
-        base_prediction: totalBase,
-        human_override_percentage: 0, // Deprecated percentage
-        human_adjustment_qty: humanDelta.value,
-        override_reason: overrideReason.value,
-        final_prediction: totalFinal
-      })
-      
+      forecastResult.value = baseForecast
     } else {
       error.value = 'Failed to generate forecast: response format was invalid.'
     }

@@ -79,18 +79,15 @@ impl From<LedgerError> for String {
     }
 }
 
-/// Payload Vue sends to log a forecast run with human override details.
+/// Item-level forecasting settings stored in the database.
 #[derive(Debug, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "../../app/types/generated/")]
-pub struct ForecastAuditCommand {
+pub struct ForecastingSettings {
     pub item_id: String,
-    pub model_used: String,
-    pub input_snapshot: String,
-    pub base_prediction: f64,
-    pub human_override_percentage: f64,
-    pub human_adjustment_qty: f64,
-    pub override_reason: String,
-    pub final_prediction: f64,
+    pub selected_engine: String,
+    pub locked: bool,
+    pub reactivity_preset: String,
+    pub alpha_override: Option<f64>,
 }
 
 /// A decrypted movement history row — what Vue receives from fetch_*_history commands.

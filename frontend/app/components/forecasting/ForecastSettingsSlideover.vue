@@ -7,8 +7,13 @@
     :scores="scores"
     :best-engine="bestEngine"
     :override-selection="overrideSelection"
+    :reactivity-preset="reactivityPreset"
+    :alpha-override="alphaOverride"
     @run-backtest="handleRunBacktest"
     @change-override="handleChangeOverride"
+    @change-reactivity="handleChangeReactivity"
+    @change-alpha="handleChangeAlpha"
+    @reset-advanced="handleResetAdvanced"
   />
 </template>
 
@@ -37,6 +42,8 @@ const isRunningBacktest = ref(false)
 const scores = ref<EngineScore[]>([])
 const bestEngine = ref<string>('Baseline_LastKnown')
 const overrideSelection = ref('auto')
+const reactivityPreset = ref('Balanced')
+const alphaOverride = ref<number | null>(null)
 
 async function loadData() {
   if (!props.item) return
@@ -48,10 +55,18 @@ async function loadData() {
     
     // 2. Fetch lock settings directly
     const settings = await getSettings(props.item.id)
-    if (settings && settings.is_locked && settings.locked_engine_name) {
-      overrideSelection.value = settings.locked_engine_name
+    if (settings) {
+      if (settings.is_locked && settings.locked_engine_name) {
+        overrideSelection.value = settings.locked_engine_name
+      } else {
+        overrideSelection.value = 'auto'
+      }
+      reactivityPreset.value = settings.reactivity_preset || 'Balanced'
+      alphaOverride.value = settings.alpha_override
     } else {
       overrideSelection.value = 'auto'
+      reactivityPreset.value = 'Balanced'
+      alphaOverride.value = null
     }
 
     // 3. Resolve Best Engine (incorporating locks)
@@ -77,14 +92,43 @@ async function handleRunBacktest() {
   }
 }
 
+async function saveCurrentSettings() {
+  if (!props.item) return
+  const engineToLock = overrideSelection.value === 'auto' ? null : overrideSelection.value
+  await setUserOverride(
+    props.item.id, 
+    engineToLock, 
+    overrideSelection.value !== 'auto',
+    reactivityPreset.value,
+    alphaOverride.value
+  )
+}
+
 async function handleChangeOverride(engine: string) {
   if (!props.item) return
   overrideSelection.value = engine
-  
-  const engineToLock = engine === 'auto' ? null : engine
-  await setUserOverride(props.item.id, engineToLock, engine !== 'auto')
-  
-  // Re-evaluate best engine
+  await saveCurrentSettings()
+  bestEngine.value = await getBestEngine(props.item.id, 14)
+}
+
+async function handleChangeReactivity(preset: string) {
+  if (!props.item) return
+  reactivityPreset.value = preset
+  await saveCurrentSettings()
+}
+
+async function handleChangeAlpha(val: number | null) {
+  if (!props.item) return
+  alphaOverride.value = val
+  await saveCurrentSettings()
+}
+
+async function handleResetAdvanced() {
+  if (!props.item) return
+  reactivityPreset.value = 'Balanced'
+  alphaOverride.value = null
+  overrideSelection.value = 'auto'
+  await saveCurrentSettings()
   bestEngine.value = await getBestEngine(props.item.id, 14)
 }
 
