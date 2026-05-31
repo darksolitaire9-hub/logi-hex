@@ -6,6 +6,21 @@ use futures_util::StreamExt;
 use reqwest::header::RANGE;
 use tauri::Manager;
 
+pub fn validate_download_filename(filename: &str) -> Result<String, String> {
+    let trimmed = filename.trim();
+    if trimmed.is_empty() {
+        return Err("Filename cannot be empty".to_string());
+    }
+    if trimmed.contains('/') || trimmed.contains('\\') || trimmed.contains("..") {
+        return Err("Directory traversals or separators are not allowed".to_string());
+    }
+    let allowed_models = [super::TIMESFM_MODEL_FILENAME];
+    if !allowed_models.contains(&trimmed) {
+        return Err(format!("Model filename '{}' is not in the allowlist", trimmed));
+    }
+    Ok(trimmed.to_string())
+}
+
 /// A robust, resumable downloader with SHA-256 verification.
 pub async fn download_ai_pack(
     app_handle: tauri::AppHandle, 
@@ -13,13 +28,15 @@ pub async fn download_ai_pack(
     expected_sha256: &str, 
     filename: &str
 ) -> Result<PathBuf, String> {
+    // 0. Security Validation: prevent traversal and validate against allowlist
+    let clean_filename = validate_download_filename(filename)?;
     
     // 1. Resolve Application Data Directory (e.g. AppData/Roaming/com.logihex.app/models/)
     let mut model_dir = app_handle.path().app_data_dir().map_err(|_| "Failed to resolve app data dir")?;
     model_dir.push("models");
     std::fs::create_dir_all(&model_dir).map_err(|e| format!("Failed to create models directory: {}", e))?;
 
-    let file_path = model_dir.join(filename);
+    let file_path = model_dir.join(&clean_filename);
     
     let client = reqwest::Client::new();
     
@@ -102,4 +119,37 @@ fn verify_checksum(path: &PathBuf, expected_hex: &str) -> Result<bool, std::io::
     let result_hex = format!("{:x}", result);
     
     Ok(result_hex == expected_hex)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_filenames() {
+        assert_eq!(validate_download_filename("timesfm_2.5_base.onnx").unwrap(), "timesfm_2.5_base.onnx");
+        assert_eq!(validate_download_filename("  timesfm_2.5_base.onnx  ").unwrap(), "timesfm_2.5_base.onnx");
+    }
+
+    #[test]
+    fn test_empty_filename() {
+        assert!(validate_download_filename("").is_err());
+        assert!(validate_download_filename("   ").is_err());
+    }
+
+    #[test]
+    fn test_path_traversal_and_separators() {
+        assert!(validate_download_filename("../timesfm_2.5_base.onnx").is_err());
+        assert!(validate_download_filename("models/timesfm_2.5_base.onnx").is_err());
+        assert!(validate_download_filename("..\\timesfm_2.5_base.onnx").is_err());
+        assert!(validate_download_filename("timesfm_2.5_base.onnx/..").is_err());
+    }
+
+    #[test]
+    fn test_non_allowlisted_filename() {
+        assert!(validate_download_filename("timesfm-2.5.onnx").is_err());
+        assert!(validate_download_filename("malicious_pack.onnx").is_err());
+        assert!(validate_download_filename("timesfm_3.0.onnx").is_err());
+        assert!(validate_download_filename("test.txt").is_err());
+    }
 }

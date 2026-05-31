@@ -33,7 +33,7 @@ impl AiStateManager {
         let mut model_path = app_handle.path().app_data_dir()
             .map_err(|_| "Failed to resolve app data dir".to_string())?;
         model_path.push("models");
-        model_path.push("timesfm_2.5_base.onnx");
+        model_path.push(super::TIMESFM_MODEL_FILENAME);
 
         if !model_path.exists() {
             let mut status = self.status.write().await;
