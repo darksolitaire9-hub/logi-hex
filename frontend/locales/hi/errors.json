@@ -1,0 +1,20 @@
+{
+  "errors": {
+    "unknown": {
+      "title": "Unexpected Error",
+      "desc": "Something went wrong on our end. Please try again."
+    },
+    "auth": {
+      "title": "Invalid PIN",
+      "desc": "The PIN you entered is incorrect. Please try again."
+    },
+    "db_locked": {
+      "title": "Database Busy",
+      "desc": "The database is currently processing another request. Please try again in a moment."
+    },
+    "validation": {
+      "title": "Validation Error",
+      "desc": "Please check your input and try again."
+    }
+  }
+}

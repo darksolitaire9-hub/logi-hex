@@ -1,0 +1,91 @@
+{
+  "login": {
+    "title": "Select Workspace",
+    "subtitle": "Choose a workspace to unlock",
+    "modes": {
+      "accounts": "Accounts Mode",
+      "inventory": "Inventory Mode"
+    },
+    "empty": {
+      "text": "No workspaces found.",
+      "button": "Create Workspace"
+    },
+    "fields": {
+      "pin": {
+        "label": "Enter Security PIN"
+      }
+    },
+    "status": {
+      "unlocked": "This workspace is unlocked."
+    },
+    "buttons": {
+      "unlock": "Ontgrendelen",
+      "enter": "Enter Workspace",
+      "switch": "Switch Workspace",
+      "createAnother": "Create another workspace"
+    },
+    "workspaceList": {
+      "accounts": "Accounts",
+      "inventory": "Inventory"
+    }
+  },
+  "errors": {
+    "unknown": {
+      "title": "System Error",
+      "desc": "An unexpected error occurred. Please try again."
+    },
+    "auth": {
+      "title": "Authorization Failed",
+      "desc": "The PIN entered is incorrect. Please verify and try again."
+    },
+    "db_locked": {
+      "title": "Database Busy",
+      "desc": "Another process is writing data. Please wait a second and try again."
+    },
+    "validation": {
+      "title": "Invalid Input",
+      "desc": "Please check the form fields and try again."
+    }
+  },
+  "onboarding": {
+    "title": "Create Workspace",
+    "subtitle": "Set up your first command center",
+    "fields": {
+      "name": {
+        "label": "Workspace Name",
+        "placeholder": "e.g., Main Warehouse"
+      },
+      "timezone": {
+        "label": "Timezone"
+      },
+      "mode": {
+        "label": "Operating Mode"
+      },
+      "userPin": {
+        "label": "User PIN",
+        "placeholder": "****"
+      },
+      "adminPin": {
+        "label": "Admin PIN",
+        "placeholder": "****"
+      }
+    },
+    "modes": {
+      "accounts": {
+        "title": "Accounts",
+        "desc": "Blind ledger tracking"
+      },
+      "inventory": {
+        "title": "Inventory",
+        "desc": "Stock and forecasts"
+      }
+    },
+    "buttons": {
+      "create": "Create Workspace",
+      "creating": "Creating..."
+    },
+    "errors": {
+      "failed": "Failed to create workspace"
+    }
+  }
+}

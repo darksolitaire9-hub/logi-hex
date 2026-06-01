@@ -1,0 +1,58 @@
+{
+  "catalog": {
+    "title": "Item Catalog",
+    "description": "Manage the predefined items you track in this workspace.",
+    "searchPlaceholder": "Search items...",
+    "addItem": "Add Item",
+    "emptyState": {
+      "title": "No items defined",
+      "description": "Create your first trackable item (e.g., Pallet, Crate, IBC Tote) to start sending them to clients.",
+      "button": "Create First Item"
+    },
+    "noMatchState": {
+      "title": "No items match your search",
+      "description": "Try a different label or filter."
+    },
+    "addedDate": "Added {date}"
+  },
+  "itemCard": {
+    "currentStock": "Current Stock",
+    "reorderPoint": "Reorder Point",
+    "useStockBtn": "Use Stock",
+    "receiveBtn": "Receive",
+    "aiSettingsBtn": "AI Settings",
+    "archiveBtn": "Archive",
+    "archivedRecord": "Archived Record",
+    "confirmDelete": "Are you sure you want to delete this item? This may break historical records if it was used in movements.",
+    "stockFormat": {
+      "whole": "{whole} {uom}",
+      "remainder": "{remainder} {base}",
+      "both": "{whole} {uom}, {remainder} {base}"
+    }
+  },
+  "addModal": {
+    "title": "Add New Item",
+    "labelInput": "Item Label",
+    "labelPlaceholder": "e.g., Euro Pallet",
+    "baseUnitInput": "Base Unit of Measure",
+    "reorderPointInput": "Reorder Point",
+    "reorderPlaceholder": "Alert Threshold",
+    "saveBtn": "Save Item"
+  },
+  "movementSlideover": {
+    "titleSend": "Send Items Out",
+    "titleReceive": "Log Return / Collection",
+    "noItems": "No items defined in the catalog.",
+    "goToCatalog": "Go to Item Catalog",
+    "exceptionLabel": "Exception / Reason",
+    "exceptionNormal": "Normal Return",
+    "exceptionDamage": "Damaged / Broken",
+    "exceptionLoss": "Lost by Client",
+    "notesLabel": "Optional Notes",
+    "notesPlaceholder": "Any details to attach to this movement...",
+    "loggingBtn": "Logging...",
+    "confirmBtn": "Confirm Logging",
+    "successMsg": "Successfully logged transaction.",
+    "validationError": "Please enter a valid quantity."
+  }
+}
