@@ -11,7 +11,7 @@
             {{ clientName }}
           </p>
         </div>
-        <UButton color="neutral" variant="ghost" icon="i-lucide-x" @click="isOpen = false" />
+        <UButton data-testid="close-slideover-btn" color="neutral" variant="ghost" icon="i-lucide-x" @click="isOpen = false" />
       </div>
 
       <!-- Body -->

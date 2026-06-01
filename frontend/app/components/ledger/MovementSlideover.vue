@@ -39,6 +39,7 @@ const isOpen = computed({
 const { items, loading: itemsLoading, fetchItems } = useItems()
 const { logMovement, loading: isSubmitting } = useLedger()
 const ui = useSelfHealingUI()
+const { t } = useI18n()
 
 // Watch for modal open to fetch items if catalog is empty
 watch(() => props.modelValue, async (val) => {
@@ -48,8 +49,6 @@ watch(() => props.modelValue, async (val) => {
 })
 
 async function handleLogMovement(payload: any) {
-  const { t } = useI18n()
-
   try {
     await logMovement(payload)
     ui.handleUXSuccess('Movement Logged', t('movementSlideover.successMsg'))

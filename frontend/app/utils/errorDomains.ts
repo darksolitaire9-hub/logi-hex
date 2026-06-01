@@ -1,12 +1,11 @@
 import { useAudio } from '../composables/useAudio'
 
-import { useI18n } from 'vue-i18n'
-
 // Replace standard alerts and console.error with this Toast handler
 export function useSelfHealingUI() {
   const toast = useToast()
   const audio = useAudio()
-  const { t } = useI18n()
+  const i18n = useI18n()
+  const t = i18n.t
 
   function handleUXError(domain: 'AUTH' | 'DATABASE_LOCKED' | 'VALIDATION' | 'UNKNOWN', customMessage?: string) {
     audio.playError()

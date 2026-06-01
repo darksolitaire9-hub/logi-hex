@@ -25,10 +25,11 @@ export function useItems() {
     try {
       const [itemRows, uomRows] = await invoke<[Item[], ItemUOM[]]>('get_items', { workspaceId: currentWorkspace.value.id })
       
-      for (const item of itemRows) {
+      // Parallelize decryption for massive datasets
+      await Promise.all(itemRows.map(async (item) => {
         item.label = await decryptField(item.label, activeCryptoKey.value)
         item.uoms = uomRows.filter(u => u.item_id === item.id)
-      }
+      }))
       
       items.value = itemRows
     } catch (e) {

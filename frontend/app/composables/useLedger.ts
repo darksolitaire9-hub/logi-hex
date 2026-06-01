@@ -25,6 +25,7 @@ export function useLedger() {
   async function logMovement(payload: LogMovementPayload) {
     if (!currentWorkspace.value) throw new Error('No active workspace')
     if (payload.lines.length === 0) throw new Error('Cannot log empty movement')
+    if (loading.value) return // Guard against concurrent hammers
     
     loading.value = true
     try {
