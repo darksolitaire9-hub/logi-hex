@@ -1,0 +1,58 @@
+{
+  "catalog": {
+    "title": "Catálogo de Artículos",
+    "description": "Administre los artículos predefinidos que rastrea en este espacio de trabajo.",
+    "searchPlaceholder": "Buscar artículos...",
+    "addItem": "Añadir Artículo",
+    "emptyState": {
+      "title": "No hay artículos definidos",
+      "description": "Cree su primer artículo rastreable para comenzar a enviarlos a los clientes.",
+      "button": "Crear Primer Artículo"
+    },
+    "noMatchState": {
+      "title": "Ningún artículo coincide con su búsqueda",
+      "description": "Intente con una etiqueta o filtro diferente."
+    },
+    "addedDate": "Añadido el {date}"
+  },
+  "itemCard": {
+    "currentStock": "Stock Actual",
+    "reorderPoint": "Punto de Reorden",
+    "useStockBtn": "Usar Stock",
+    "receiveBtn": "Recibir",
+    "aiSettingsBtn": "Ajustes de IA",
+    "archiveBtn": "Archivar",
+    "archivedRecord": "Registro Archivado",
+    "confirmDelete": "¿Está seguro de que desea eliminar este artículo?",
+    "stockFormat": {
+      "whole": "{whole} {uom}",
+      "remainder": "{remainder} {base}",
+      "both": "{whole} {uom}, {remainder} {base}"
+    }
+  },
+  "addModal": {
+    "title": "Añadir Nuevo Artículo",
+    "labelInput": "Etiqueta del Artículo",
+    "labelPlaceholder": "ej., Euro Pallet",
+    "baseUnitInput": "Unidad de Medida Base",
+    "reorderPointInput": "Punto de Reorden",
+    "reorderPlaceholder": "Umbral de Alerta",
+    "saveBtn": "Guardar Artículo"
+  },
+  "movementSlideover": {
+    "titleSend": "Enviar Artículos",
+    "titleReceive": "Registrar Devolución",
+    "noItems": "No hay artículos definidos en el catálogo.",
+    "goToCatalog": "Ir al Catálogo de Artículos",
+    "exceptionLabel": "Excepción / Razón",
+    "exceptionNormal": "Devolución Normal",
+    "exceptionDamage": "Dañado / Roto",
+    "exceptionLoss": "Perdido por el Cliente",
+    "notesLabel": "Notas Opcionales",
+    "notesPlaceholder": "Cualquier detalle para adjuntar a este movimiento...",
+    "loggingBtn": "Registrando...",
+    "confirmBtn": "Confirmar Registro",
+    "successMsg": "Transacción registrada con éxito.",
+    "validationError": "Por favor, introduzca una cantidad válida."
+  }
+}

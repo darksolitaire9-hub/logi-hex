@@ -1,0 +1,58 @@
+{
+  "catalog": {
+    "title": "アイテムカタログ",
+    "description": "ワークスペースで追跡するアイテムを管理します。",
+    "searchPlaceholder": "アイテムを検索...",
+    "addItem": "アイテムを追加",
+    "emptyState": {
+      "title": "アイテムが定義されていません",
+      "description": "最初の追跡可能なアイテムを作成して、クライアントへの送信を開始してください。",
+      "button": "最初のアイテムを作成"
+    },
+    "noMatchState": {
+      "title": "検索に一致するアイテムはありません",
+      "description": "別のラベルまたはフィルターをお試しください。"
+    },
+    "addedDate": "{date} に追加"
+  },
+  "itemCard": {
+    "currentStock": "現在庫",
+    "reorderPoint": "再注文ポイント",
+    "useStockBtn": "在庫を使用",
+    "receiveBtn": "受け取る",
+    "aiSettingsBtn": "AI設定",
+    "archiveBtn": "アーカイブ",
+    "archivedRecord": "アーカイブされた記録",
+    "confirmDelete": "このアイテムを削除してもよろしいですか？",
+    "stockFormat": {
+      "whole": "{whole} {uom}",
+      "remainder": "{remainder} {base}",
+      "both": "{whole} {uom}, {remainder} {base}"
+    }
+  },
+  "addModal": {
+    "title": "新しいアイテムを追加",
+    "labelInput": "アイテムラベル",
+    "labelPlaceholder": "例：ユーロパレット",
+    "baseUnitInput": "基本単位",
+    "reorderPointInput": "再注文ポイント",
+    "reorderPlaceholder": "アラートしきい値",
+    "saveBtn": "アイテムを保存"
+  },
+  "movementSlideover": {
+    "titleSend": "アイテムを送信",
+    "titleReceive": "返却/回収を記録",
+    "noItems": "カタログにアイテムが定義されていません。",
+    "goToCatalog": "アイテムカタログへ移動",
+    "exceptionLabel": "例外/理由",
+    "exceptionNormal": "通常返却",
+    "exceptionDamage": "破損/故障",
+    "exceptionLoss": "クライアントによる紛失",
+    "notesLabel": "オプションの備考",
+    "notesPlaceholder": "この移動に添付する詳細...",
+    "loggingBtn": "記録中...",
+    "confirmBtn": "記録を確定",
+    "successMsg": "トランザクションの記録に成功しました。",
+    "validationError": "有効な数量を入力してください。"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "errors": {
+    "unknown": {
+      "title": "Error Inesperado",
+      "desc": "Algo salió mal de nuestro lado. Por favor, inténtelo de nuevo."
+    },
+    "auth": {
+      "title": "PIN Inválido",
+      "desc": "El PIN que introdujo es incorrecto. Por favor, inténtelo de nuevo."
+    },
+    "db_locked": {
+      "title": "Base de Datos Ocupada",
+      "desc": "La base de datos está procesando otra solicitud. Por favor, espere un momento."
+    },
+    "validation": {
+      "title": "Error de Validación",
+      "desc": "Por favor, compruebe su entrada e inténtelo de nuevo."
+    }
+  }
+}

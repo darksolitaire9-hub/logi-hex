@@ -1,0 +1,18 @@
+{
+  "app": {
+    "title": "Logi-Hex",
+    "description": "Sistema de seguimiento logístico"
+  },
+  "status": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "archived": "Archivado"
+  },
+  "actions": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "search": "Buscar..."
+  }
+}

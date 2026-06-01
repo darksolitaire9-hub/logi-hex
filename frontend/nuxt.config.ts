@@ -7,9 +7,9 @@ export default defineNuxtConfig({
   i18n: {
     restructureDir: false,
     locales: [
-      { code: 'en', files: ['en/core.json', 'en/inventory.json', 'en/login.json'], name: 'English' },
-      { code: 'es', files: ['es/login.json'], name: 'Español' },
-      { code: 'ja', files: ['ja/login.json'], name: '日本語' }
+      { code: 'en', files: ['en/core.json', 'en/inventory.json', 'en/login.json', 'en/errors.json'], name: 'English' },
+      { code: 'es', files: ['es/core.json', 'es/inventory.json', 'es/login.json', 'es/errors.json'], name: 'Español' },
+      { code: 'ja', files: ['ja/core.json', 'ja/inventory.json', 'ja/login.json', 'ja/errors.json'], name: '日本語' }
     ],
     defaultLocale: 'en',
     strategy: 'no_prefix',
