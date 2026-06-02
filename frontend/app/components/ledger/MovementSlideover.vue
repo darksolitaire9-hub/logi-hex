@@ -1,5 +1,6 @@
 <template>
   <MovementForm
+    v-if="isOpen"
     v-model="isOpen"
     :client-id="clientId"
     :client-name="clientName"
@@ -15,6 +16,7 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useItems } from '../../composables/useItems'
 import { useLedger } from '../../composables/useLedger'
 import { useSelfHealingUI } from '../../utils/errorDomains'

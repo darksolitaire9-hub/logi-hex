@@ -83,7 +83,7 @@
     </div>
 
     <!-- Add Client Modal -->
-    <UModal v-model="isAddModalOpen">
+    <UModal v-if="isAddModalOpen" v-model="isAddModalOpen">
       <div class="p-6 bg-[var(--lh-bg-surface)] rounded-2xl border border-[var(--lh-border)] shadow-xl">
         <h3 class="text-lg font-semibold text-[var(--lh-ink-primary)] mb-4">Add New Client</h3>
         <form @submit.prevent="submitAdd" class="space-y-4">
@@ -145,7 +145,7 @@ watch(isAddModalOpen, (val) => {
 
 async function submitAdd() {
   if (!newClientForm.value.name) return
-  const newId = await createClient(newClientForm.value.name, '')
+  await createClient(newClientForm.value.name, '')
   newClientForm.value = { name: '' }
   isAddModalOpen.value = false
 }

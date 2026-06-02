@@ -31,6 +31,41 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Workspace Mode -->
+        <div class="lh-card flex flex-col h-full border-t-4 border-t-amber-500">
+          <div class="flex items-center mb-4">
+            <UIcon name="i-lucide-settings-2" class="w-6 h-6 text-amber-500 mr-2" />
+            <h2 class="text-lg font-semibold text-[var(--lh-ink-primary)]">Workspace Mode</h2>
+          </div>
+          <p class="text-sm text-[var(--lh-ink-secondary)] flex-1 mb-6">
+            Switch between <strong>Inventory</strong> (stock tracking) and <strong>Accounts</strong> (container tracking only) modes.
+          </p>
+          <div class="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <button 
+              @click="setMode('INVENTORY')"
+              :class="[
+                'flex-1 py-2 text-sm font-medium rounded-md transition-all',
+                currentWorkspace?.mode === 'INVENTORY' 
+                  ? 'bg-white dark:bg-gray-700 text-[var(--lh-ink-primary)] shadow-sm' 
+                  : 'text-[var(--lh-ink-secondary)] hover:text-[var(--lh-ink-primary)]'
+              ]"
+            >
+              Inventory
+            </button>
+            <button 
+              @click="setMode('ACCOUNTS')"
+              :class="[
+                'flex-1 py-2 text-sm font-medium rounded-md transition-all',
+                currentWorkspace?.mode === 'ACCOUNTS' 
+                  ? 'bg-white dark:bg-gray-700 text-[var(--lh-ink-primary)] shadow-sm' 
+                  : 'text-[var(--lh-ink-secondary)] hover:text-[var(--lh-ink-primary)]'
+              ]"
+            >
+              Accounts
+            </button>
+          </div>
+        </div>
+
         <!-- CSV Export -->
         <div class="lh-card flex flex-col h-full border-t-4 border-t-blue-500">
           <div class="flex items-center mb-4">
@@ -83,10 +118,19 @@ definePageMeta({
   layout: 'default'
 })
 
-const { currentWorkspace, verifyAdminPin } = useWorkspace()
+const { currentWorkspace, verifyAdminPin, updateWorkspaceMode } = useWorkspace()
 const isAdminVerified = ref(false)
 const adminPinInput = ref('')
 const errorMsg = ref('')
+
+async function setMode(mode: 'ACCOUNTS' | 'INVENTORY') {
+  if (currentWorkspace.value?.mode === mode) return
+  try {
+    await updateWorkspaceMode(mode)
+  } catch (e) {
+    alert('Failed to update mode.')
+  }
+}
 
 async function verifyAccess() {
   if (!currentWorkspace.value) return
@@ -95,7 +139,7 @@ async function verifyAccess() {
   if (isValid) {
     isAdminVerified.value = true
   } else {
-    errorMsg.value = 'Invalid Admin PIN.'
+    errorMsg.value = 'Invalid PIN'
     adminPinInput.value = ''
   }
 }

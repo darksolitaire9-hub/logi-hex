@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="scrollContainer" class="h-full overflow-y-auto pr-2 pb-20">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
       <div>
         <h1 class="text-2xl font-semibold text-[var(--lh-ink-primary)]">{{ $t('catalog.title') }}</h1>
@@ -40,13 +40,13 @@
       </button>
     </div>
 
-    <div v-else-if="filteredItems.length === 0" class="lh-card text-center py-12">
+    <div v-else-if="items.length === 0 && searchQuery" class="lh-card text-center py-12">
       <h3 class="text-lg font-medium text-[var(--lh-ink-primary)]">{{ $t('catalog.noMatchState.title') }}</h3>
       <p class="text-sm text-[var(--lh-ink-secondary)] mt-1">{{ $t('catalog.noMatchState.description') }}</p>
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div v-for="item in filteredItems" :key="item.id" 
+      <div v-for="item in items" :key="item.id" 
         :class="[
           'lh-card flex flex-col justify-between group transition-colors',
           item.deleted_at ? 'opacity-60 bg-gray-50 dark:bg-gray-900/50 grayscale' : ''
@@ -56,6 +56,9 @@
           <div class="flex items-center justify-between">
             <h3 class="font-medium text-[var(--lh-ink-primary)] flex items-center">
               {{ item.label }}
+              <button @click="openEditModal(item)" class="ml-2 text-gray-400 hover:text-[var(--lh-brand)]">
+                <UIcon name="i-lucide-pencil" class="w-3.5 h-3.5" />
+              </button>
               <span v-if="item.deleted_at" class="ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400">{{ $t('status.archived') }}</span>
             </h3>
             <span data-testid="primary-uom-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
@@ -107,6 +110,7 @@
 
     <!-- Inventory Logging Slideover -->
     <MovementSlideover 
+      v-if="isSlideoverOpen"
       v-model="isSlideoverOpen"
       :client-id="''"
       :client-name="'Internal Warehouse'"
@@ -118,12 +122,13 @@
 
     <!-- AI Forecast Settings Slideover -->
     <ForecastSettingsSlideover
+      v-if="isForecastSettingsOpen"
       v-model="isForecastSettingsOpen"
       :item="selectedItemForForecast"
     />
 
     <!-- Add Item Modal -->
-    <UModal v-model="isAddModalOpen">
+    <UModal v-if="isAddModalOpen" v-model="isAddModalOpen">
       <div class="p-6 bg-[var(--lh-bg-surface)] rounded-2xl border border-[var(--lh-border)] shadow-xl">
         <h3 class="text-lg font-semibold text-[var(--lh-ink-primary)] mb-4">{{ $t('addModal.title') }}</h3>
         <form @submit.prevent="submitAdd" class="space-y-4">
@@ -141,13 +146,14 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">{{ $t('addModal.baseUnitInput') }}</label>
-              <select v-model="newItemForm.unit" class="lh-input" required>
+              <select data-testid="item-unit-select" v-model="newItemForm.unit" class="lh-input" required>
                 <option value="Pieces">Pieces (pcs)</option>
                 <option value="Kilograms">Kilograms (kg)</option>
                 <option value="Pounds">Pounds (lbs)</option>
                 <option value="Liters">Liters (L)</option>
               </select>
             </div>
+
             <div>
               <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">{{ $t('addModal.reorderPointInput') }}</label>
               <input 
@@ -166,11 +172,45 @@
         </form>
       </div>
     </UModal>
+
+    <!-- Edit Item Modal -->
+    <UModal v-if="isEditModalOpen" v-model="isEditModalOpen">
+      <div class="p-6 bg-[var(--lh-bg-surface)] rounded-2xl border border-[var(--lh-border)] shadow-xl">
+        <h3 class="text-lg font-semibold text-[var(--lh-ink-primary)] mb-4">Edit Item</h3>
+        <form @submit.prevent="submitEdit" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">{{ $t('addModal.labelInput') }}</label>
+            <input 
+              data-testid="edit-item-label-input"
+              v-model="editItemForm.label" 
+              type="text" 
+              required 
+              class="lh-input"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-[var(--lh-ink-primary)] mb-1">{{ $t('addModal.baseUnitInput') }}</label>
+            <select v-model="editItemForm.unit" class="lh-input" required>
+              <option value="Pieces">Pieces (pcs)</option>
+              <option value="Kilograms">Kilograms (kg)</option>
+              <option value="Pounds">Pounds (lbs)</option>
+              <option value="Liters">Liters (L)</option>
+            </select>
+          </div>
+          <div class="flex justify-end space-x-3 pt-4">
+            <button type="button" @click="isEditModalOpen = false" class="lh-btn lh-btn-secondary">{{ $t('actions.cancel') }}</button>
+            <button data-testid="save-item-btn" type="submit" class="lh-btn lh-btn-primary" :disabled="!editItemForm.label">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { refDebounced, useInfiniteScroll } from '@vueuse/core'
 import { useWorkspace } from '../../../composables/useWorkspace'
 import { useItems } from '../../../composables/useItems'
 import { useUOMTranslator } from '../../../composables/useUOMTranslator'
@@ -183,19 +223,46 @@ definePageMeta({
 })
 
 const { currentWorkspace } = useWorkspace()
-const { items, loading, fetchItems, createItem, deleteItem } = useItems()
+const { items, loading, fetchItems, createItem, updateItem, deleteItem } = useItems()
 const { translateToDisplay } = useUOMTranslator()
 const { t, n } = useI18n()
 
 const isAddModalOpen = ref(false)
 const newItemForm = ref<{ label: string, unit: string, reorder_point: number | null }>({ label: '', unit: 'Pieces', reorder_point: null })
 
+const isEditModalOpen = ref(false)
+const editItemForm = ref<{ id: string, label: string, unit: string }>({ id: '', label: '', unit: '' })
+
+// Infinite Scroll & Search State
 const searchQuery = ref('')
-const filteredItems = computed(() => {
-  if (!searchQuery.value) return items.value
-  const q = searchQuery.value.toLowerCase()
-  return items.value.filter(i => i.label.toLowerCase().includes(q))
+// THEORY OF CONSTRAINTS: 500ms debounce is a bottleneck for E2E tests.
+// Disable or shorten it if we detect a test environment.
+const debounceMs = (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) ? 0 : 500
+const debouncedSearch = refDebounced(searchQuery, debounceMs)
+const hasMoreItems = ref(true)
+const scrollContainer = ref<HTMLElement | null>(null)
+
+// Trigger fresh search when debounced input changes
+watch(debouncedSearch, async (newVal) => {
+  hasMoreItems.value = true
+  await fetchItems(newVal, undefined, 100)
 })
+
+useInfiniteScroll(
+  scrollContainer,
+  async () => {
+    if (loading.value || !hasMoreItems.value) return
+    const cursor = items.value.length > 0 ? items.value[items.value.length - 1].created_at : undefined
+    
+    const prevCount = items.value.length
+    await fetchItems(debouncedSearch.value, cursor, 100)
+    
+    if (items.value.length - prevCount < 100) {
+      hasMoreItems.value = false
+    }
+  },
+  { distance: 200 }
+)
 
 // Inventory Slideover State
 const isSlideoverOpen = ref(false)
@@ -207,21 +274,22 @@ const isForecastSettingsOpen = ref(false)
 const selectedItemForForecast = ref<Item | null>(null)
 
 onMounted(async () => {
-  await fetchItems()
+  await fetchItems(undefined, undefined, 100)
 })
 
 function formatStock(item: any) {
+  if (!item) return '0'
   const primaryUom = item.uoms?.find((u: any) => u.id === item.primary_uom_id);
   const multiplier = primaryUom ? primaryUom.multiplier : 1.0;
   const unitName = primaryUom ? primaryUom.unit_name : item.base_unit_name;
   
-  const { is_negative, whole_units, remainder } = translateToDisplay(item.current_stock, multiplier, unitName, item.base_unit_name);
+  const { is_negative, whole_units, remainder } = translateToDisplay(item.current_stock || 0, multiplier, unitName, item.base_unit_name);
   
   // Natively reconstruct the string using i18n placeholders and locale-aware number formatting
   let text = '';
   
-  const formattedWhole = n(whole_units, 'decimal')
-  const formattedRemainder = n(remainder, 'decimal')
+  const formattedWhole = n(whole_units || 0, 'decimal')
+  const formattedRemainder = n(remainder || 0, 'decimal')
 
   if (whole_units > 0 && remainder > 0) {
     text = t('itemCard.stockFormat.both', { whole: formattedWhole, uom: unitName, remainder: formattedRemainder, base: item.base_unit_name })
@@ -256,6 +324,21 @@ async function submitAdd() {
   await createItem(newItemForm.value.label, newItemForm.value.unit, newItemForm.value.reorder_point)
   newItemForm.value = { label: '', unit: 'Pieces', reorder_point: null }
   isAddModalOpen.value = false
+}
+
+function openEditModal(item: Item) {
+  editItemForm.value = {
+    id: item.id,
+    label: item.label,
+    unit: item.base_unit_name
+  }
+  isEditModalOpen.value = true
+}
+
+async function submitEdit() {
+  if (!editItemForm.value.label) return
+  await updateItem(editItemForm.value.id, editItemForm.value.label, editItemForm.value.unit)
+  isEditModalOpen.value = false
 }
 
 async function handleDelete(id: string) {
