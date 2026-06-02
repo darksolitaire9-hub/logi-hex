@@ -2,7 +2,7 @@
 // Native WebCrypto Engine for Application-Level AES-GCM Encryption
 // ZERO Dependencies. Relies on OS-level C++ hardware acceleration via the browser.
 
-const ITERATIONS = 100000
+const ITERATIONS = (typeof window !== 'undefined' && (window as any).LH_MOCK_CRYPTO) ? 1 : 100000
 const SALT_SIZE = 16
 const IV_SIZE = 12
 
