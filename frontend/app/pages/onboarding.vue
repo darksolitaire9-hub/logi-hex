@@ -104,7 +104,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useWorkspace } from '../composables/useWorkspace'
 import type { WorkspaceMode } from '../types/domain'
