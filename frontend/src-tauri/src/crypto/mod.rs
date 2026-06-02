@@ -4,6 +4,8 @@ use aes_gcm::{
     aead::{Aead, KeyInit, OsRng},
     Aes256Gcm, Nonce,
 };
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
 use rand::RngCore;
 use zeroize::Zeroizing;
 
@@ -87,4 +89,23 @@ pub fn decrypt_field(encoded: &str, key: &[u8]) -> Result<String, String> {
 
     String::from_utf8(plaintext)
         .map_err(|e| format!("Decrypted bytes are not valid UTF-8: {}", e))
+}
+
+type HmacSha256 = Hmac<Sha256>;
+
+/// Generates a deterministic hash for a given plaintext using the workspace key.
+/// This allows O(1) database lookups on encrypted data (Blind Indexing).
+/// The input is lowercased to enable case-insensitive search.
+pub fn hash_blind_index(plaintext: &str, key: &[u8]) -> Result<String, String> {
+    let mut mac = <HmacSha256 as Mac>::new_from_slice(key)
+        .map_err(|e| format!("HMAC init error: {}", e))?;
+    
+    // Lowercase the plaintext for case-insensitive search
+    let normalized = plaintext.to_lowercase();
+    mac.update(normalized.as_bytes());
+    
+    let result = mac.finalize();
+    let code_bytes = result.into_bytes();
+    
+    Ok(hex::encode(code_bytes))
 }

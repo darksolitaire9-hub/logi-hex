@@ -2,36 +2,39 @@ import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useWorkspace } from './useWorkspace'
-import { encryptField, decryptField } from '../utils/crypto'
 import type { Item, ItemUOM } from '../types/domain'
 
+// Use ref for predictability in E2E
 const items = ref<Item[]>([])
 const loading = ref(false)
 
 export function useItems() {
-  const { currentWorkspace, activeCryptoKey } = useWorkspace()
+  const { currentWorkspace } = useWorkspace()
 
-  // Reactively refresh items list when database changes on the Rust side
-  listen('db_changed', (event) => {
-    if (event.payload === 'item') {
-      console.log("Database changed event received for item, reloading...")
-      fetchItems()
-    }
-  })
-
-  async function fetchItems() {
+  // Accepts optional pagination and search parameters
+  async function fetchItems(searchTerm?: string, cursor?: string, limit: number = 100) {
     if (!currentWorkspace.value) return
+    
     loading.value = true
     try {
-      const [itemRows, uomRows] = await invoke<[Item[], ItemUOM[]]>('get_items', { workspaceId: currentWorkspace.value.id })
+      const [itemRows, uomRows] = await invoke<[Item[], ItemUOM[]]>('get_items', { 
+        workspaceId: currentWorkspace.value.id,
+        searchTerm: searchTerm || null,
+        cursor: cursor || null,
+        limit
+      })
       
-      // Parallelize decryption for massive datasets
-      await Promise.all(itemRows.map(async (item) => {
-        item.label = await decryptField(item.label, activeCryptoKey.value)
+      // Map UOMs
+      for (const item of itemRows) {
         item.uoms = uomRows.filter(u => u.item_id === item.id)
-      }))
+      }
       
-      items.value = itemRows
+      // If we are paginating, append to the array. Otherwise, replace.
+      if (cursor) {
+        items.value = [...items.value, ...itemRows]
+      } else {
+        items.value = itemRows
+      }
     } catch (e) {
       console.error('Failed to fetch items:', e)
     } finally {
@@ -42,11 +45,9 @@ export function useItems() {
   async function createItem(label: string, base_unit_name: string, reorder_point: number | null = null, alternate_uoms: Array<{unit_name: string, multiplier: number}> = [], primary_uom_name: string | null = null) {
     if (!currentWorkspace.value) return null
     try {
-      const encryptedLabel = await encryptField(label, activeCryptoKey.value)
-      
       const id = await invoke<string>('create_item', {
         workspaceId: currentWorkspace.value.id,
-        label: encryptedLabel,
+        label,
         baseUnitName: base_unit_name,
         reorderPoint: reorder_point,
         alternateUoms: alternate_uoms,

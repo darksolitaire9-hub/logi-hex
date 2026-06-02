@@ -96,7 +96,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import { useWorkspace } from '../composables/useWorkspace'
 import { useSelfHealingUI } from '../utils/errorDomains'
 
@@ -104,7 +103,6 @@ definePageMeta({
   layout: 'auth'
 })
 
-const router = useRouter()
 const { workspaces, currentWorkspace, loading, fetchWorkspaces, selectWorkspace, unlockWorkspaceCrypto } = useWorkspace()
 const ui = useSelfHealingUI()
 
@@ -117,7 +115,7 @@ onMounted(async () => {
   
   // If no workspaces exist, immediately redirect to onboarding
   if (workspaces.value.length === 0) {
-    router.replace('/onboarding')
+    await navigateTo('/onboarding')
     return
   }
 
@@ -161,6 +159,7 @@ async function hashPin(pinText: string): Promise<string> {
 }
 
 async function handleUnlock() {
+  console.log('handleUnlock called', pin.value)
   if (!currentWorkspace.value) return
 
   errorMsg.value = ''
@@ -182,6 +181,6 @@ async function handleUnlock() {
   await selectWorkspace(currentWorkspace.value.id)
   
   // Navigate to main dashboard
-  router.push('/dashboard')
+  await navigateTo('/dashboard')
 }
 </script>

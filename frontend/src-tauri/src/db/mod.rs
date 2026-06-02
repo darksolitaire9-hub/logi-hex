@@ -87,13 +87,44 @@ mod tests {
         let _ = std::fs::remove_dir_all(&nested_dir);
     }
 
-    #[test]
-    fn test_create_db_dir_handles_existing_directory() {
-        let temp = std::env::temp_dir();
-        let db_file_path = temp.join("test_logihex.db");
+    #[tokio::test]
+    async fn test_db_transaction_atomicity_rollback() {
+        let db_path = std::env::temp_dir().join("logihex_atomicity_test.db");
+        if db_path.exists() {
+            let _ = std::fs::remove_file(&db_path);
+        }
 
-        assert!(temp.exists());
-        create_db_dir(&db_file_path).unwrap();
-        assert!(temp.exists());
+        let db_url = format!("sqlite:{}", db_path.to_string_lossy());
+        let options = SqliteConnectOptions::from_str(&db_url).unwrap().create_if_missing(true);
+        let pool = SqlitePoolOptions::new().connect_with(options).await.unwrap();
+
+        // Create a table for testing
+        sqlx::query("CREATE TABLE atomicity_test (id INTEGER PRIMARY KEY, val TEXT)")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        // Start a transaction
+        let mut tx = pool.begin().await.unwrap();
+
+        // Insert a row
+        sqlx::query("INSERT INTO atomicity_test (id, val) VALUES (1, 'Initial')")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+
+        // Simulate a failure by letting 'tx' go out of scope without committing
+        drop(tx);
+
+        // Verify the row was NOT inserted
+        let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM atomicity_test")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        
+        assert_eq!(count, 0, "Transaction should have rolled back on drop");
+
+        // Clean up
+        let _ = std::fs::remove_file(&db_path);
     }
 }

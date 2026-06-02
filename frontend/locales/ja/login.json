@@ -1,17 +1,65 @@
 {
+  "login": {
+    "title": "ワークスペースを選択",
+    "subtitle": "ロックを解除するワークスペースを選択",
+    "modes": {
+      "accounts": "アカウントモード",
+      "inventory": "インベントリモード"
+    },
+    "empty": {
+      "text": "ワークスペースが見つかりません。",
+      "button": "ワークスペースを作成"
+    },
+    "fields": {
+      "pin": {
+        "label": "セキュリティPINを入力"
+      }
+    },
+    "status": {
+      "unlocked": "このワークスペースはロック解除されています。"
+    },
+    "buttons": {
+      "unlock": "ロック解除",
+      "enter": "ワークスペースに入る",
+      "switch": "ワークスペースを切り替える",
+      "createAnother": "別のワークスペースを作成"
+    },
+    "workspaceList": {
+      "accounts": "アカウント",
+      "inventory": "インベントリ"
+    }
+  },
+  "errors": {
+    "unknown": {
+      "title": "システムエラー",
+      "desc": "予期しないエラーが発生しました。もう一度お試しください。"
+    },
+    "auth": {
+      "title": "認証失敗",
+      "desc": "PINが正しくありません。確認してもう一度お試しください。"
+    },
+    "db_locked": {
+      "title": "データベース処理中",
+      "desc": "別のプロセスがデータを書き込んでいます。少し待ってからもう一度お試しください。"
+    },
+    "validation": {
+      "title": "無効な入力",
+      "desc": "フォームのフィールドを確認してもう一度お試しください。"
+    }
+  },
   "onboarding": {
     "title": "ワークスペースの作成",
-    "subtitle": "最初のコマンドセンターを設定する",
+    "subtitle": "最初のコマンドセンターをセットアップ",
     "fields": {
       "name": {
         "label": "ワークスペース名",
-        "placeholder": "例：メイン倉庫"
+        "placeholder": "例: メイン倉庫"
       },
       "timezone": {
         "label": "タイムゾーン"
       },
       "mode": {
-        "label": "動作モード"
+        "label": "操作モード"
       },
       "userPin": {
         "label": "ユーザーPIN",
@@ -25,10 +73,10 @@
     "modes": {
       "accounts": {
         "title": "アカウント",
-        "desc": "ブラインド台帳の追跡"
+        "desc": "ブラインド元帳追跡"
       },
       "inventory": {
-        "title": "在庫",
+        "title": "インベントリ",
         "desc": "在庫と予測"
       }
     },

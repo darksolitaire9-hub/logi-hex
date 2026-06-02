@@ -42,3 +42,12 @@ frontend/src-tauri/binaries/
 
 # Graphify Knowledge Graph Metadata
 graphify-out/
+
+# Local AI Agent State
+.claude/
+.gemini/
+.antigravitycli/
+
+# Local Exports/Outputs
+output/
+

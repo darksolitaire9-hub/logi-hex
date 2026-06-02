@@ -167,23 +167,33 @@ pub async fn log_movement(
 pub async fn fetch_client_history(
     workspace_id: String,
     client_id: String,
+    cursor: Option<String>,
     db_pool: State<'_, sqlx::SqlitePool>,
     crypto_state: State<'_, CryptoState>,
 ) -> Result<Vec<MovementHistoryRow>, String> {
-    let rows = sqlx::query(
+    let mut query_str = String::from(
         "SELECT m.id, m.workspace_id, m.direction, m.timestamp, m.client_id,
                 m.correction_reason, m.notes, mli.quantity, i.label as item_label
          FROM movements m
          JOIN movement_line_items mli ON m.id = mli.movement_id
          JOIN items i ON mli.item_id = i.id
-         WHERE m.workspace_id = ? AND m.client_id = ?
-         ORDER BY m.timestamp DESC"
-    )
-    .bind(&workspace_id)
-    .bind(&client_id)
-    .fetch_all(&*db_pool)
-    .await
-    .map_err(|e| format!("DB error: {}", e))?;
+         WHERE m.workspace_id = ? AND m.client_id = ?"
+    );
+
+    if cursor.is_some() {
+        query_str.push_str(" AND m.timestamp < ?");
+    }
+    query_str.push_str(" ORDER BY m.timestamp DESC LIMIT 100");
+
+    let mut query = sqlx::query(&query_str)
+        .bind(&workspace_id)
+        .bind(&client_id);
+
+    if let Some(ref c) = cursor {
+        query = query.bind(c);
+    }
+
+    let rows = query.fetch_all(&*db_pool).await.map_err(|e| format!("DB error: {}", e))?;
 
     map_history_rows(rows, crypto_state.key())
 }
@@ -192,22 +202,31 @@ pub async fn fetch_client_history(
 #[tauri::command]
 pub async fn fetch_global_history(
     workspace_id: String,
+    cursor: Option<String>,
     db_pool: State<'_, sqlx::SqlitePool>,
     crypto_state: State<'_, CryptoState>,
 ) -> Result<Vec<MovementHistoryRow>, String> {
-    let rows = sqlx::query(
+    let mut query_str = String::from(
         "SELECT m.id, m.workspace_id, m.direction, m.timestamp, m.client_id,
                 m.correction_reason, m.notes, mli.quantity, i.label as item_label
          FROM movements m
          JOIN movement_line_items mli ON m.id = mli.movement_id
          JOIN items i ON mli.item_id = i.id
-         WHERE m.workspace_id = ?
-         ORDER BY m.timestamp DESC"
-    )
-    .bind(&workspace_id)
-    .fetch_all(&*db_pool)
-    .await
-    .map_err(|e| format!("DB error: {}", e))?;
+         WHERE m.workspace_id = ?"
+    );
+
+    if cursor.is_some() {
+        query_str.push_str(" AND m.timestamp < ?");
+    }
+    query_str.push_str(" ORDER BY m.timestamp DESC LIMIT 100");
+
+    let mut query = sqlx::query(&query_str).bind(&workspace_id);
+
+    if let Some(ref c) = cursor {
+        query = query.bind(c);
+    }
+
+    let rows = query.fetch_all(&*db_pool).await.map_err(|e| format!("DB error: {}", e))?;
 
     map_history_rows(rows, crypto_state.key())
 }
@@ -228,6 +247,13 @@ fn map_history_rows(
             _ => None,
         };
 
+        let raw_label: String = row.get("item_label");
+        let decrypted_label = if !raw_label.is_empty() {
+            crypto::decrypt_field(&raw_label, key).unwrap_or_else(|_| raw_label.clone())
+        } else {
+            raw_label
+        };
+
         result.push(MovementHistoryRow {
             id: row.get("id"),
             workspace_id: row.get("workspace_id"),
@@ -236,12 +262,26 @@ fn map_history_rows(
             client_id: row.get("client_id"),
             correction_reason: row.get("correction_reason"),
             notes: decrypted_notes,
-            item_label: row.get("item_label"),
+            item_label: decrypted_label,
             quantity: row.get("quantity"),
         });
     }
 
     Ok(result)
+}
+
+#[tauri::command]
+pub async fn fetch_history_count(
+    workspace_id: String,
+    db_pool: State<'_, sqlx::SqlitePool>,
+) -> Result<i64, String> {
+    let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM movements WHERE workspace_id = ?")
+        .bind(&workspace_id)
+        .fetch_one(&*db_pool)
+        .await
+        .map_err(|e| format!("DB error: {}", e))?;
+    
+    Ok(row.0)
 }
 
 /// Computes today's local date string (YYYY-MM-DD) in the given IANA timezone.

@@ -102,6 +102,21 @@ export function useWorkspace() {
     }
   }
 
+  async function updateWorkspaceMode(mode: 'ACCOUNTS' | 'INVENTORY') {
+    if (!currentWorkspace.value) return
+    try {
+      await invoke('update_workspace_mode', {
+        id: currentWorkspace.value.id,
+        mode
+      })
+      // Update local state
+      currentWorkspace.value.mode = mode
+    } catch (e) {
+      console.error('Failed to update workspace mode:', e)
+      throw e
+    }
+  }
+
   return {
     workspaces,
     currentWorkspace,
@@ -109,6 +124,7 @@ export function useWorkspace() {
     loading,
     fetchWorkspaces,
     createWorkspace,
+    updateWorkspaceMode,
     selectWorkspace,
     restoreActiveWorkspace,
     verifyPin,

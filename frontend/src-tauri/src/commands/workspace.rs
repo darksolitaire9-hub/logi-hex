@@ -60,3 +60,23 @@ pub async fn create_workspace(
 
     Ok(created)
 }
+
+#[tauri::command]
+pub async fn update_workspace_mode(
+    app_handle: tauri::AppHandle,
+    id: String,
+    mode: String,
+    db_pool: State<'_, SqlitePool>
+) -> Result<(), String> {
+    sqlx::query(
+        "UPDATE workspaces SET mode = ? WHERE id = ?"
+    )
+    .bind(&mode)
+    .bind(&id)
+    .execute(db_pool.inner())
+    .await
+    .map_err(|e| format!("Failed to update workspace mode: {}", e))?;
+
+    let _ = app_handle.emit("db_changed", "workspace");
+    Ok(())
+}

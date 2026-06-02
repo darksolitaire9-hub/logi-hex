@@ -24,7 +24,7 @@ log = "0.4"
 tauri = { version = "2.0.0-rc.17", features = [] }
 tauri-plugin-log = "2.0.0-rc"
 tauri-plugin-shell = "2.0.0-rc"
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1.36", features = ["full"] }
 anofox-forecast = "0.7.5"
 reqwest = { version = "0.11", features = ["stream"] }
 sha2 = "0.10"
@@ -46,3 +46,5 @@ zeroize = { version = "1", features = ["derive"] }
 # Encoding utilities for keyring and AES-GCM payload
 hex = "0.4"
 base64 = "0.21"
+# HMAC for blind indexing search
+hmac = "0.12"

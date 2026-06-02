@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useWorkspace } from './useWorkspace'
 import type { MovementDirection } from '../types/generated/MovementDirection'
@@ -45,12 +45,13 @@ export function useLedger() {
     }
   }
 
-  async function fetchClientHistory(clientId: string): Promise<MovementHistoryRow[]> {
+  async function fetchClientHistory(clientId: string, cursor?: string): Promise<MovementHistoryRow[]> {
     if (!currentWorkspace.value) return []
     try {
       return await invoke<MovementHistoryRow[]>('fetch_client_history', { 
         workspaceId: currentWorkspace.value.id, 
-        clientId 
+        clientId,
+        cursor: cursor || null
       })
     } catch (e) {
       console.error('Failed to fetch client history:', e)
@@ -58,15 +59,26 @@ export function useLedger() {
     }
   }
 
-  async function fetchGlobalHistory(): Promise<MovementHistoryRow[]> {
+  async function fetchGlobalHistory(cursor?: string): Promise<MovementHistoryRow[]> {
     if (!currentWorkspace.value) return []
     try {
       return await invoke<MovementHistoryRow[]>('fetch_global_history', { 
-        workspaceId: currentWorkspace.value.id 
+        workspaceId: currentWorkspace.value.id,
+        cursor: cursor || null
       })
     } catch (e) {
       console.error('Failed to fetch global history:', e)
       return []
+    }
+  }
+
+  async function fetchHistoryCount(): Promise<number> {
+    if (!currentWorkspace.value) return 0
+    try {
+      return await invoke<number>('fetch_history_count', { workspaceId: currentWorkspace.value.id })
+    } catch (e) {
+      console.error('Failed to fetch history count:', e)
+      return 0
     }
   }
 
@@ -85,6 +97,7 @@ export function useLedger() {
     logMovement,
     fetchClientHistory,
     fetchGlobalHistory,
+    fetchHistoryCount,
     getItemMovementHistory
   }
 }

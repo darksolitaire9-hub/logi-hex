@@ -1,10 +1,58 @@
 {
+  "login": {
+    "title": "Seleccionar Espacio",
+    "subtitle": "Elija un espacio para desbloquear",
+    "modes": {
+      "accounts": "Modo Cuentas",
+      "inventory": "Modo Inventario"
+    },
+    "empty": {
+      "text": "No se encontraron espacios.",
+      "button": "Crear Espacio"
+    },
+    "fields": {
+      "pin": {
+        "label": "Introducir PIN de Seguridad"
+      }
+    },
+    "status": {
+      "unlocked": "Este espacio está desbloqueado."
+    },
+    "buttons": {
+      "unlock": "Desbloquear",
+      "enter": "Entrar al Espacio",
+      "switch": "Cambiar Espacio",
+      "createAnother": "Crear otro espacio"
+    },
+    "workspaceList": {
+      "accounts": "Cuentas",
+      "inventory": "Inventario"
+    }
+  },
+  "errors": {
+    "unknown": {
+      "title": "Error del Sistema",
+      "desc": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo."
+    },
+    "auth": {
+      "title": "Fallo de Autorización",
+      "desc": "El PIN es incorrecto. Por favor verifique e inténtelo de nuevo."
+    },
+    "db_locked": {
+      "title": "Base de Datos Ocupada",
+      "desc": "Otro proceso está escribiendo datos. Por favor espere un segundo."
+    },
+    "validation": {
+      "title": "Entrada Inválida",
+      "desc": "Por favor, compruebe los campos del formulario."
+    }
+  },
   "onboarding": {
     "title": "Crear Espacio de Trabajo",
     "subtitle": "Configura tu primer centro de comando",
     "fields": {
       "name": {
-        "label": "Nombre del Espacio de Trabajo",
+        "label": "Nombre del Espacio",
         "placeholder": "ej. Almacén Principal"
       },
       "timezone": {
@@ -33,11 +81,11 @@
       }
     },
     "buttons": {
-      "create": "Crear Espacio de Trabajo",
+      "create": "Crear Espacio",
       "creating": "Creando..."
     },
     "errors": {
-      "failed": "Error al crear el espacio de trabajo"
+      "failed": "Error al crear el espacio"
     }
   }
 }

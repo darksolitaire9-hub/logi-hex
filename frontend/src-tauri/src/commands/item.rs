@@ -2,31 +2,75 @@ use tauri::{State, Emitter};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 use crate::types::{ItemRow, ItemUomRow, AlternateUomPayload};
+use crate::crypto::{self, state::CryptoState};
 
 #[tauri::command]
 pub async fn get_items(
     workspace_id: String,
-    db_pool: State<'_, SqlitePool>
+    search_term: Option<String>,
+    cursor: Option<String>,
+    limit: Option<i64>,
+    db_pool: State<'_, SqlitePool>,
+    crypto_state: State<'_, CryptoState>
 ) -> Result<(Vec<ItemRow>, Vec<ItemUomRow>), String> {
-    let items = sqlx::query_as::<_, ItemRow>(
-        "SELECT * FROM items 
-         WHERE workspace_id = ? 
-         ORDER BY 
-           CASE WHEN deleted_at IS NULL THEN 0 ELSE 1 END ASC,
-           created_at DESC"
-    )
-    .bind(&workspace_id)
-    .fetch_all(db_pool.inner())
-    .await
-    .map_err(|e| format!("Failed to fetch items: {}", e))?;
+    let key = crypto_state.key();
+    let query_limit = limit.unwrap_or(100);
 
-    let uoms = sqlx::query_as::<_, ItemUomRow>(
-        "SELECT * FROM item_uoms WHERE item_id IN (SELECT id FROM items WHERE workspace_id = ?)"
-    )
-    .bind(&workspace_id)
-    .fetch_all(db_pool.inner())
-    .await
-    .map_err(|e| format!("Failed to fetch UOMs: {}", e))?;
+    let mut query_str = String::from(
+        "SELECT * FROM items 
+         WHERE workspace_id = ? AND deleted_at IS NULL"
+    );
+
+    let mut search_hash = None;
+    if let Some(ref term) = search_term {
+        if !term.is_empty() {
+            let hash = crypto::hash_blind_index(term, key)?;
+            query_str.push_str(" AND label_index = ?");
+            search_hash = Some(hash);
+        }
+    }
+
+    if cursor.is_some() {
+        query_str.push_str(" AND created_at < ?");
+    }
+
+    query_str.push_str(" ORDER BY created_at DESC LIMIT ?");
+
+    // Dynamic binding
+    let mut query = sqlx::query_as::<_, ItemRow>(&query_str).bind(&workspace_id);
+
+    if let Some(hash) = &search_hash {
+        query = query.bind(hash);
+    }
+    if let Some(ref c) = cursor {
+        query = query.bind(c);
+    }
+    query = query.bind(query_limit);
+
+    let mut items = query.fetch_all(db_pool.inner()).await
+        .map_err(|e| format!("Failed to fetch items: {}", e))?;
+
+    // Decrypt labels in Rust
+    for item in &mut items {
+        if !item.label.is_empty() {
+            item.label = crypto::decrypt_field(&item.label, key).unwrap_or_else(|_| item.label.clone());
+        }
+    }
+
+    let mut uoms = Vec::new();
+    if !items.is_empty() {
+        let item_ids: Vec<String> = items.iter().map(|i| i.id.clone()).collect();
+        let placeholders = vec!["?"; item_ids.len()].join(",");
+        let uom_query_str = format!("SELECT * FROM item_uoms WHERE item_id IN ({})", placeholders);
+        
+        let mut uom_query = sqlx::query_as::<_, ItemUomRow>(&uom_query_str);
+        for id in &item_ids {
+            uom_query = uom_query.bind(id);
+        }
+        
+        uoms = uom_query.fetch_all(db_pool.inner()).await
+            .map_err(|e| format!("Failed to fetch UOMs: {}", e))?;
+    }
 
     Ok((items, uoms))
 }
@@ -35,13 +79,18 @@ pub async fn get_items(
 pub async fn create_item(
     app_handle: tauri::AppHandle,
     workspace_id: String,
-    label: String, // encrypted from frontend
+    label: String, // PLAINTEXT from frontend
     base_unit_name: String,
     reorder_point: Option<f64>,
     alternate_uoms: Vec<AlternateUomPayload>,
     primary_uom_name: Option<String>,
-    db_pool: State<'_, SqlitePool>
+    db_pool: State<'_, SqlitePool>,
+    crypto_state: State<'_, CryptoState>
 ) -> Result<String, String> {
+    let key = crypto_state.key();
+    let encrypted_label = crypto::encrypt_field(&label, key)?;
+    let label_index = crypto::hash_blind_index(&label, key)?;
+
     let pool = db_pool.inner();
     let mut tx = pool.begin().await
         .map_err(|e| format!("Failed to begin transaction: {}", e))?;
@@ -50,12 +99,13 @@ pub async fn create_item(
 
     // Step 1: Insert item with base identity
     sqlx::query(
-        "INSERT INTO items (id, workspace_id, label, unit, reorder_point, base_unit_name) 
-         VALUES (?, ?, ?, ?, ?, ?)"
+        "INSERT INTO items (id, workspace_id, label, label_index, unit, reorder_point, base_unit_name) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(&item_id)
     .bind(&workspace_id)
-    .bind(&label)
+    .bind(&encrypted_label)
+    .bind(&label_index)
     .bind(&base_unit_name)
     .bind(reorder_point)
     .bind(&base_unit_name)
@@ -120,14 +170,20 @@ pub async fn update_item(
     app_handle: tauri::AppHandle,
     id: String,
     workspace_id: String,
-    label: String,
+    label: String, // PLAINTEXT
     unit: String,
-    db_pool: State<'_, SqlitePool>
+    db_pool: State<'_, SqlitePool>,
+    crypto_state: State<'_, CryptoState>
 ) -> Result<(), String> {
+    let key = crypto_state.key();
+    let encrypted_label = crypto::encrypt_field(&label, key)?;
+    let label_index = crypto::hash_blind_index(&label, key)?;
+
     sqlx::query(
-        "UPDATE items SET label = ?, unit = ? WHERE id = ? AND workspace_id = ?"
+        "UPDATE items SET label = ?, label_index = ?, unit = ? WHERE id = ? AND workspace_id = ?"
     )
-    .bind(&label)
+    .bind(&encrypted_label)
+    .bind(&label_index)
     .bind(&unit)
     .bind(&id)
     .bind(&workspace_id)
@@ -159,6 +215,20 @@ pub async fn delete_item(
     let _ = app_handle.emit("db_changed", "item");
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn fetch_items_count(
+    workspace_id: String,
+    db_pool: State<'_, SqlitePool>,
+) -> Result<i64, String> {
+    let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM items WHERE workspace_id = ? AND deleted_at IS NULL")
+        .bind(&workspace_id)
+        .fetch_one(db_pool.inner())
+        .await
+        .map_err(|e| format!("DB error: {}", e))?;
+    
+    Ok(row.0)
 }
 
 #[tauri::command]
